@@ -4,31 +4,35 @@
 
 # Determine script location regardless of platform
 script_dir=$(dirname "$0")
-project_root=$(cd "$script_dir/../.." && pwd)
+testing_root=$(cd "$script_dir/../.." && pwd)
 
 # Source test utilities
-if [ -f "$project_root/lib/common.sh" ]; then
-  . "$project_root/lib/common.sh"
+if [ -f "$testing_root/lib/common.sh" ]; then
+  . "$testing_root/lib/common.sh"
+elif [ -f "/app/testing/lib/common.sh" ]; then
+  . "/app/testing/lib/common.sh"
 else
-  echo "ERROR: Cannot find common.sh at $project_root/lib/common.sh"
+  echo "ERROR: Cannot find common.sh at $testing_root/lib/common.sh"
   # Try alternative path for Docker environment
-  if [ -f "/workspace/lib/common.sh" ]; then
-    . "/workspace/lib/common.sh"
+  if [ -f "/workspace/testing/lib/common.sh" ]; then
+    . "/workspace/testing/lib/common.sh"
   else
-    echo "ERROR: Cannot find common.sh at /workspace/lib/common.sh either"
+    echo "ERROR: Cannot find common.sh at /workspace/testing/lib/common.sh either"
     exit 1
   fi
 fi
 
-if [ -f "$project_root/lib/assertions.sh" ]; then
-  . "$project_root/lib/assertions.sh"
+if [ -f "$testing_root/lib/assertions.sh" ]; then
+  . "$testing_root/lib/assertions.sh"
+elif [ -f "/app/testing/lib/assertions.sh" ]; then
+  . "/app/testing/lib/assertions.sh"
 else
-  echo "ERROR: Cannot find assertions.sh at $project_root/lib/assertions.sh"
+  echo "ERROR: Cannot find assertions.sh at $testing_root/lib/assertions.sh"
   # Try alternative path for Docker environment
-  if [ -f "/workspace/lib/assertions.sh" ]; then
-    . "/workspace/lib/assertions.sh"
+  if [ -f "/workspace/testing/lib/assertions.sh" ]; then
+    . "/workspace/testing/lib/assertions.sh"
   else
-    echo "ERROR: Cannot find assertions.sh at /workspace/lib/assertions.sh either"
+    echo "ERROR: Cannot find assertions.sh at /workspace/testing/lib/assertions.sh either"
     exit 1
   fi
 fi

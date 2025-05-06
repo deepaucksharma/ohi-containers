@@ -1,14 +1,19 @@
 {
   "request": {
     "method": "POST",
-    "urlPattern": "/v1/.*"
+    "url": "/v1/metrics"
   },
   "response": {
     "status": 200,
+    "jsonBody": {
+      "status": "success",
+      "message": "Metrics received successfully"
+    },
     "headers": {
       "Content-Type": "application/json"
     },
-    "body": "{\"success\":true}",
     "transformers": ["response-template"]
-  }
+  },
+  "persistent": true,
+  "priority": 1
 }

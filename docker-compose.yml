@@ -14,11 +14,15 @@ services:
       MYSQL_USER: ${MYSQL_USER:-newrelic}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-test_password}
     volumes:
-      - ./tests/fixtures/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./testing/tests/fixtures/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./testing/tests/fixtures/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
     command: >
       --performance-schema=ON
       --table_definition_cache=400
       --table_open_cache=300
+      --slow_query_log=ON
+      --slow_query_log_file=/var/log/mysql/slow-query.log
+      --long_query_time=0.5
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
@@ -37,11 +41,15 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
     volumes:
-      - ./tests/fixtures/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./testing/tests/fixtures/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./testing/tests/fixtures/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
     command: >
       -c shared_preload_libraries=pg_stat_statements
       -c pg_stat_statements.max=10000
       -c pg_stat_statements.track=all
+      -c track_activity_query_size=4096
+      -c log_min_duration_statement=500
+      -c log_statement=all
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -55,7 +63,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./tests/fixtures/wiremock:/home/wiremock:ro
+      - ./testing/tests/fixtures/wiremock:/home/wiremock:ro
     command: --verbose --global-response-templating
     healthcheck:
       test: ["CMD", "wget", "--spider", "http://localhost:8080/__admin/mappings"]
@@ -83,14 +91,24 @@ services:
       MYSQL_PORT: "3306"
       MYSQL_USER: ${MYSQL_USER:-newrelic}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-test_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-test}
       POSTGRES_HOST: "postgres"
       POSTGRES_PORT: "5432"
-      POSTGRES_USER: ${POSTGRES_USER:-newrelic}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-test_password}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DATABASE: ${POSTGRES_DB:-postgres}
+      # Additional environment variables for better monitoring
+      NRIA_VERBOSE: "1"
+      NRIA_DISPLAY_NAME: "Test Infrastructure"
+      NRIA_METRICS_SYSTEM_SAMPLE_RATE: "15"
+      NRIA_METRICS_STORAGE_SAMPLE_RATE: "15"
+      NRIA_METRICS_NETWORK_SAMPLE_RATE: "15"
+      NRIA_METRICS_PROCESS_SAMPLE_RATE: "15"
     volumes:
       - ./configs/newrelic-infra.yml.template:/etc/newrelic-infra.yml:ro
       - ./configs/:/etc/newrelic-infra/integrations.d:ro
-      - ./tests/output:/var/log/test-results
+      - ./testing/output:/var/log/test-results
+      - ./testing/output:/var/log/newrelic-infra
     command: ["--config", "/etc/newrelic-infra.yml", "--verbose", "1"]
     # Let Docker use the HEALTHCHECK from the Dockerfile
 
@@ -102,7 +120,6 @@ services:
       newrelic-infra:
         condition: service_healthy
     volumes:
-      - ./tests:/tests:ro
-      - ./lib:/lib:ro
-      - ./tests/output:/output
-    command: sh -c "cd /tests && ./run_all_tests.sh"
+      - ./testing:/testing:ro
+      - ./testing/output:/output
+    command: sh -c "cd /testing && ./tests/run_all_tests.sh"

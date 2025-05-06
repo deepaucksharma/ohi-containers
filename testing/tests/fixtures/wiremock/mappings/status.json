@@ -1,0 +1,20 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/status"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "status": "ok",
+      "version": "1.0.0",
+      "uptime": "{{now timestamp 'unix'}}"
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "transformers": ["response-template"]
+  },
+  "persistent": true,
+  "priority": 1
+}

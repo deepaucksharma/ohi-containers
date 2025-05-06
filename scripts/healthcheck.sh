@@ -1,11 +1,12 @@
-#!/bin/bash
+#!/bin/sh
 # Health check for New Relic infrastructure agent
 # This performs a basic validation of the agent's functionality
 
 set -e
 
 # Check if the New Relic agent process is running
-if ! pgrep -f "newrelic-infra" > /dev/null; then
+# Use 'ps' instead of 'pgrep' for broader compatibility
+if ! ps -ef | grep -q "[n]ewrelic-infra"; then
   echo "ERROR: New Relic Infrastructure agent process is not running"
   exit 1
 fi

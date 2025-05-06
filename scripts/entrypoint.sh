@@ -1,8 +1,14 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 # Process the configuration template with environment variables
 envsubst < /etc/newrelic-infra.yml.template > /etc/newrelic-infra.yml
+
+# Check if license key is provided
+if [ -z "${NRIA_LICENSE_KEY}" ] || [ "${NRIA_LICENSE_KEY}" = "" ]; then
+  echo "ERROR: NRIA_LICENSE_KEY environment variable is required but not set"
+  exit 1
+fi
 
 # Handle mock mode for testing
 if [ "${NR_MOCK_MODE}" = "true" ]; then

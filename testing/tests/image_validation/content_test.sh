@@ -4,11 +4,11 @@
 
 # Determine script location regardless of platform
 script_dir=$(dirname "$0")
-project_root=$(cd "$script_dir/../.." && pwd)
+testing_root=$(cd "$script_dir/../.." && pwd)
 
 # Source test utilities
-. "$project_root/lib/common.sh"
-. "$project_root/lib/assertions.sh"
+. "$testing_root/lib/common.sh"
+. "$testing_root/lib/assertions.sh"
 
 # Get Docker command
 docker_command=$(docker_cmd)

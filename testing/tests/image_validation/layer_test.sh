@@ -4,11 +4,11 @@
 
 # Determine script location regardless of platform
 script_dir=$(dirname "$0")
-project_root=$(cd "$script_dir/../.." && pwd)
+testing_root=$(cd "$script_dir/../.." && pwd)
 
 # Source test utilities
-. "$project_root/lib/common.sh"
-. "$project_root/lib/assertions.sh"
+. "$testing_root/lib/common.sh"
+. "$testing_root/lib/assertions.sh"
 
 # Get Docker command
 docker_command=$(docker_cmd)
@@ -31,7 +31,7 @@ test_image_layers() {
   if ! "$docker_command" image inspect "$image_name" >/dev/null 2>&1; then
     log_message "ERROR" "Image does not exist: $image_name"
     log_message "INFO" "Building image"
-    cd "$project_root" || exit 1
+    cd "$(cd "$testing_root/.." && pwd)" || exit 1
     "$docker_command" compose build
   fi
   

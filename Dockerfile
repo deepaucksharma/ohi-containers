@@ -1,29 +1,17 @@
-FROM newrelic/infrastructure:latest
+FROM newrelic/infrastructure-bundle:3.7.1
 
 # Set metadata labels
 LABEL maintainer="platform-eng@example.com" \
       version="1.0" \
       description="New Relic Infrastructure with DB Monitoring Integrations"
 
-# Install additional dependencies required for database monitoring
+# Install additional dependencies
 RUN apt-get update && apt-get install -y \
     curl \
     gnupg \
-    apt-transport-https \
-    ca-certificates \
-    software-properties-common \
+    gettext-base \
     netcat-openbsd \
     jq \
-    && rm -rf /var/lib/apt/lists/*
-
-# Add New Relic repository for On-Host Integrations
-RUN echo "deb https://download.newrelic.com/infrastructure_agent/linux/apt/ any main" > /etc/apt/sources.list.d/newrelic-infra.list \
-    && curl -s https://download.newrelic.com/infrastructure_agent/gpg/newrelic-infra.gpg | apt-key add -
-
-# Install MySQL and PostgreSQL integrations
-RUN apt-get update && apt-get install -y \
-    nri-mysql \
-    nri-postgresql \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy configuration files
@@ -46,10 +34,13 @@ RUN chmod -R 777 /var/log/newrelic-infra \
 COPY scripts/healthcheck.sh /usr/local/bin/healthcheck.sh
 RUN chmod +x /usr/local/bin/healthcheck.sh
 
+# Add entrypoint script
+COPY scripts/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Configure healthcheck
 HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \
   CMD /usr/local/bin/healthcheck.sh
 
-# Default entrypoint and command
-ENTRYPOINT ["/usr/bin/newrelic-infra"]
-CMD ["--config=/etc/newrelic-infra.yml"]
+# Use entrypoint script to process templates before starting the agent
+ENTRYPOINT ["/entrypoint.sh"]

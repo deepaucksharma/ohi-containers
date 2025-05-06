@@ -3,39 +3,36 @@ integrations:
     interval: 15s
     timeout: 30s
     inventory_source: config/postgresql
-    config:
-      hostname: ${POSTGRES_HOST}
-      port: ${POSTGRES_PORT}
-      username: ${POSTGRES_USER}
-      password: ${POSTGRES_PASSWORD}
-      database: ${POSTGRES_DATABASE}
-      collection_list: [ALL]
+    env:
+      HOSTNAME: ${POSTGRES_HOST}
+      PORT: ${POSTGRES_PORT}
+      USERNAME: ${POSTGRES_USER}
+      PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASE: ${POSTGRES_DATABASE}
+      COLLECTION_LIST: "ALL"
       
-      # Enable query performance monitoring
-      metrics: true
-      collect_statements: true
-      extended_metrics: true
-      enable_default_metrics_highlights: true
+      # Enable query performance monitoring (using the updated flag names)
+      ENABLE_QUERY_MONITORING: "true"
+      ENABLE_EXTENDED_METRICS: "true"
+      ENABLE_DEFAULT_METRICS_HIGHLIGHTS: "true"
       
       # Metrics collection categories
-      collect_metrics_from_all_databases: true
-      collect_db_lock_metrics: true
-      collect_db_bloat_metrics: true
-      collect_db_vacuum_metrics: true
-      collect_pg_stat_statements: true
-      collect_pg_stat_activity: true
+      ENABLE_ALL_DATABASES: "true"
+      ENABLE_DB_LOCK_METRICS: "true"
+      ENABLE_DB_BLOAT_METRICS: "true"
+      ENABLE_DB_VACUUM_METRICS: "true"
+      ENABLE_PG_STAT_STATEMENTS: "true"
+      ENABLE_PG_STAT_ACTIVITY: "true"
       
       # Set pg_stat_statements and pg_stat_activity queries
-      pg_stat_statements_metrics_limit: 50
-      pg_stat_activity_metrics_limit: 50
+      PG_STAT_STATEMENTS_LIMIT: "50"
+      PG_STAT_ACTIVITY_LIMIT: "50"
       
       # Custom queries for monitoring
-      custom_metrics_query:
-        - query: |
-            SELECT 
-              COUNT(*) as test_count,
-              AVG(integer_value) as avg_integer,
-              MAX(integer_value) as max_integer,
-              MIN(integer_value) as min_integer
-            FROM test_monitoring.performance_test
-          database: ${POSTGRES_DATABASE}
+      CUSTOM_METRICS_QUERY: |
+        SELECT 
+          COUNT(*) as test_count,
+          AVG(integer_value) as avg_integer,
+          MAX(integer_value) as max_integer,
+          MIN(integer_value) as min_integer
+        FROM test_monitoring.performance_test

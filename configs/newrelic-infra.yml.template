@@ -3,7 +3,7 @@ display_name: ${NRIA_DISPLAY_NAME:Test New Relic Infrastructure}
 
 # Database monitoring settings
 custom_attributes:
-  environment: testing
+  environment: ${ENVIRONMENT:testing}
   service: database-monitoring
   team: platform-engineering
 
@@ -22,13 +22,7 @@ metrics:
   network_sample_rate: ${NRIA_METRICS_NETWORK_SAMPLE_RATE:15}
   process_sample_rate: ${NRIA_METRICS_PROCESS_SAMPLE_RATE:15}
 
-# API endpoint for sending data
-endpoints:
-  metrics: ${NEW_RELIC_API_URL}/metrics
-  inventory: ${NEW_RELIC_API_URL}/inventory
-  events: ${NEW_RELIC_API_URL}/events
-  
-# Specify which features to enable
+# Features configuration
 features:
   docker_enabled: true
   container_metrics_enabled: true

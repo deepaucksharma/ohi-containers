@@ -30,5 +30,25 @@ if [ -n "$POSTGRES_HOST" ] && [ -n "$POSTGRES_PORT" ]; then
   fi
 fi
 
+# Check if we can connect to the mock backend (if we're in testing mode)
+if [ "${NR_MOCK_MODE}" = "true" ]; then
+  MOCKBACKEND_HOST="mockbackend"
+  MOCKBACKEND_PORT="8080"
+  
+  if ! nc -z "$MOCKBACKEND_HOST" "$MOCKBACKEND_PORT" > /dev/null 2>&1; then
+    echo "WARNING: Cannot connect to mock backend at $MOCKBACKEND_HOST:$MOCKBACKEND_PORT"
+  else
+    # Check if the mock backend is responding properly
+    if ! curl -s "http://$MOCKBACKEND_HOST:$MOCKBACKEND_PORT/__admin/mappings" > /dev/null; then
+      echo "WARNING: Mock backend is not responding properly"
+    fi
+    
+    # Check if the mock backend /status endpoint is available
+    if ! curl -s "http://$MOCKBACKEND_HOST:$MOCKBACKEND_PORT/status" > /dev/null; then
+      echo "WARNING: Mock backend /status endpoint not available"
+    fi
+  fi
+fi
+
 echo "Health check passed"
 exit 0

@@ -85,8 +85,8 @@ services:
       mockbackend:
         condition: service_healthy
     environment:
-      NRIA_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-0123456789012345678901234567890123456789}
-      NEW_RELIC_API_URL: "http://mockbackend:8080/v1"
+      NRIA_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:?err}
+      NR_MOCK_MODE: "true"
       MYSQL_HOST: "mysql"
       MYSQL_PORT: "3306"
       MYSQL_USER: ${MYSQL_USER:-newrelic}
@@ -105,11 +105,10 @@ services:
       NRIA_METRICS_NETWORK_SAMPLE_RATE: "15"
       NRIA_METRICS_PROCESS_SAMPLE_RATE: "15"
     volumes:
-      - ./configs/newrelic-infra.yml.template:/etc/newrelic-infra.yml:ro
+      - ./configs/newrelic-infra.yml.template:/etc/newrelic-infra.yml.template:ro
       - ./configs/:/etc/newrelic-infra/integrations.d:ro
       - ./testing/output:/var/log/test-results
       - ./testing/output:/var/log/newrelic-infra
-    command: ["--config", "/etc/newrelic-infra.yml", "--verbose", "1"]
     # Let Docker use the HEALTHCHECK from the Dockerfile
 
   # Test runner

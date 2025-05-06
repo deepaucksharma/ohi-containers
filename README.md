@@ -68,6 +68,58 @@ docker/                              # Root directory
 - Docker Compose
 - Bash-compatible shell (Linux or Git Bash/WSL for Windows)
 
+## ✨ New: Automated E2E & Integration Tests
+
+This repo now ships a complete test matrix that validates:
+
+| Layer | Scenario IDs | What it proves |
+|-------|--------------|----------------|
+| **Build** | E2E-01 | Image is reproducible (multi-arch) |
+| **Config** | E2E-02 | Secrets template renders correctly or blocks start-up |
+| **MySQL Monitoring** | INT-My-01 / INT-My-02 | Standard & DBPM metrics flow to New Relic |
+| **PostgreSQL Monitoring** | INT-Pg-01 / INT-Pg-02 | Same for Postgres with `pg_stat_statements` |
+| **Security** | SEC-01 | No secrets leak into logs |
+| **Reliability** | HA-01 / N/W-01 | Agent auto-recovers from DB fail-over & proxy outage |
+| **Cloud-region** | CLOUD-01 | EU/US license routing correct |
+| **Kubernetes** | K8s-01 | Helm deployment boots & reports |
+| **Upgrade** | UP-01 | CI guards against silent version regressions |
+
+### Running All Tests Locally
+
+```bash
+# From repo root
+export NEW_RELIC_LICENSE_KEY=dummy012345678901234567890123456789
+export MYSQL_ROOT_PASSWORD=root
+# …
+
+docker-compose -f docker-compose.yml up -d --build
+# Wait until health-checks pass (≈30 s)
+docker-compose exec test-runner sh -c "/testing/tests/run_all_tests.sh"
+docker-compose down
+```
+
+All E2E cases are runnable through the **GitHub Actions workflows** out-of-the-box.
+For a single test, use `--category`:
+
+```bash
+./runtests.sh --category integration --test INT-My-02
+```
+
+### Writing New Scenarios
+
+1. Add your script under `testing/tests/<group>/<id>.sh`.
+2. Return `0` for pass, non-zero for fail.
+3. Use helper libs:
+
+   * `testing/lib/assertions.sh` – `assert_equals`, `assert_not_empty`
+   * `testing/lib/database_utils.sh` – `wait_for_mysql`, `run_pg_query`
+
+Scripts run inside Alpine with `bash`, `jq`, `curl` pre-installed.
+
+---
+
+Happy hacking 👩‍💻👨‍💻— drop issues or PRs if you spot a gap!
+
 ### Running Tests
 
 Use the simplified test runners from the root directory:

@@ -1,0 +1,34 @@
+#!/bin/sh
+# Script to debug paths and help locate missing files
+# This script will be used in GitHub Actions to trace path issues
+
+echo "=== Path Debugging Utility ==="
+echo "Current working directory: $(pwd)"
+
+# Check for common.sh in various locations
+echo "\nSearching for common.sh in various locations:"
+find / -name "common.sh" -type f 2>/dev/null | grep -v "Permission denied" | head -n 10 || echo "No common.sh found"
+
+# Display current directory structure
+echo "\nDirectory structure:"
+ls -la
+ls -la testing/lib/ || echo "testing/lib/ not found"
+
+# Try to find testing directory
+echo "\nSearching for testing directory:"
+find . -name "testing" -type d 2>/dev/null | head -n 5 || echo "No testing directory found"
+
+# Create symlinks if needed
+echo "\nCreating symlinks to ensure access to library files:"
+if [ -d "testing/lib" ] && [ -f "testing/lib/common.sh" ]; then
+  mkdir -p /workspace/lib /workspace/testing/lib 2>/dev/null
+  ln -sf $(pwd)/testing/lib/common.sh /workspace/lib/common.sh 2>/dev/null
+  ln -sf $(pwd)/testing/lib/common.sh /workspace/testing/lib/common.sh 2>/dev/null
+  ln -sf $(pwd)/testing/lib/assertions.sh /workspace/lib/assertions.sh 2>/dev/null
+  ln -sf $(pwd)/testing/lib/assertions.sh /workspace/testing/lib/assertions.sh 2>/dev/null
+  echo "Symlinks created successfully"
+else
+  echo "Could not find testing/lib/common.sh to create symlinks"
+fi
+
+echo "=== End of Path Debugging ==="

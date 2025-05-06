@@ -3,40 +3,38 @@ integrations:
     interval: 15s
     timeout: 30s
     inventory_source: config/mysql
-    config:
-      hostname: ${MYSQL_HOST}
-      port: ${MYSQL_PORT}
-      username: ${MYSQL_USER}
-      password: ${MYSQL_PASSWORD}
-      database: ${MYSQL_DATABASE}
-      collect_all_databases: true
+    env:
+      HOSTNAME: ${MYSQL_HOST}
+      PORT: ${MYSQL_PORT}
+      USERNAME: ${MYSQL_USER}
+      PASSWORD: ${MYSQL_PASSWORD}
+      DATABASE: ${MYSQL_DATABASE}
+      COLLECT_ALL_DATABASES: "true"
       
       # Enable query performance monitoring
-      metrics: true
-      slow_queries: true
-      extended_metrics: true
-      extended_innodb_metrics: true
-      extended_innodb_metrics_as_samples: true
-      global_stats: true
+      ENABLE_QUERY_MONITORING: "true"
+      ENABLE_SLOW_QUERIES: "true"
+      ENABLE_EXTENDED_METRICS: "true"
+      ENABLE_INNODB_METRICS: "true"
+      ENABLE_INNODB_METRICS_AS_SAMPLES: "true"
+      ENABLE_GLOBAL_STATUS_METRICS: "true"
       
       # Metrics collection categories
-      collect_slave_metrics: true
-      collect_processlist_metrics: true
-      collect_table_schema_metrics: true
-      collect_tablespace_metrics: true
+      ENABLE_SLAVE_METRICS: "true"
+      ENABLE_PROCESSLIST_METRICS: "true"
+      ENABLE_TABLE_SCHEMA_METRICS: "true"
+      ENABLE_TABLESPACE_METRICS: "true"
       
       # Additional settings for query monitoring
-      timeout: 30
-      status_metrics_query_retry_count: 3
-      enable_extended_slow_queries: true
-      explain_slow_queries: true
+      TIMEOUT: "30"
+      STATUS_METRICS_QUERY_RETRY_COUNT: "3"
+      ENABLE_EXTENDED_SLOW_QUERIES: "true"
+      ENABLE_EXPLAIN_SLOW_QUERIES: "true"
       
       # Custom queries can be added here
-      custom_metrics_query:
-        - query: |
-            SELECT COUNT(*) as 'performance_test.count',
-            AVG(integer_value) as 'performance_test.avg_integer',
-            MAX(integer_value) as 'performance_test.max_integer',
-            MIN(integer_value) as 'performance_test.min_integer'
-            FROM performance_test
-          database: ${MYSQL_DATABASE}
+      CUSTOM_METRICS_QUERY: |
+        SELECT COUNT(*) as 'performance_test.count',
+        AVG(integer_value) as 'performance_test.avg_integer',
+        MAX(integer_value) as 'performance_test.max_integer',
+        MIN(integer_value) as 'performance_test.min_integer'
+        FROM performance_test

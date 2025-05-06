@@ -1,74 +1,6 @@
-#!/bin/sh
-# Common utility functions for platform-independent test execution
-# Version: 1.0.0
-
-# Detect platform
-detect_platform() {
-  case "$(uname -s 2>/dev/null)" in
-    Linux*)     echo "linux" ;;
-    Darwin*)    echo "macos" ;;
-    CYGWIN*)    echo "windows" ;;
-    MINGW*)     echo "windows" ;;
-    MSYS*)      echo "windows" ;;
-    Windows*)   echo "windows" ;;
-    *)          
-      # If uname fails, try other methods
-      if command -v cmd.exe >/dev/null 2>&1; then
-        echo "windows"
-      else
-        echo "linux"  # Default to linux if detection fails
-      fi
-      ;;
-  esac
-}
-
-# Platform-independent path handling
-normalize_path() {
-  local path="$1"
-  local platform=$(detect_platform)
-  
-  if [ "$platform" = "windows" ]; then
-    # Convert forward slashes to backslashes for Windows
-    echo "$path" | sed 's/\//\\/g'
-  else
-    # Ensure forward slashes for Unix
-    echo "$path" | sed 's/\\/\//g'
-  fi
-}
-
-# Platform-independent temporary directory
-get_temp_dir() {
-  local platform=$(detect_platform)
-  
-  if [ "$platform" = "windows" ]; then
-    echo "$TEMP"
-  else
-    echo "/tmp"
-  fi
-}
-
-# Platform-independent command execution
-execute_command() {
-  local cmd="$1"
-  local platform=$(detect_platform)
-  
-  if [ "$platform" = "windows" ]; then
-    cmd.exe /c "$cmd"
-  else
-    sh -c "$cmd"
-  fi
-}
-
-# Platform-independent Docker command
-docker_cmd() {
-  local platform=$(detect_platform)
-  
-  if [ "$platform" = "windows" ]; then
-    echo "docker.exe"
-  else
-    echo "docker"
-  fi
-}
+#!/bin/bash
+# Common utility functions for Linux test execution
+# Version: 2.0.0
 
 # Platform-independent file existence check
 file_exists() {
@@ -90,6 +22,22 @@ dir_exists() {
   else
     return 1
   fi
+}
+
+# Get temporary directory
+get_temp_dir() {
+  echo "/tmp"
+}
+
+# Execute command
+execute_command() {
+  local cmd="$1"
+  bash -c "$cmd"
+}
+
+# Docker command helper
+docker_cmd() {
+  echo "docker"
 }
 
 # Log a message with timestamp

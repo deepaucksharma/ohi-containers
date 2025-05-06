@@ -13,7 +13,6 @@ TEST_CATEGORIES="all"
 VERBOSE=0
 SKIP_SETUP=0
 SKIP_CLEANUP=0
-PLATFORM="$(uname -s 2>/dev/null || echo 'unknown')"
 RUN_ID=$(date +%Y%m%d%H%M%S)
 
 # Load common libraries
@@ -23,7 +22,6 @@ source "$LIB_DIR/common.sh"
 print_banner() {
   echo "======================================================"
   echo "   New Relic Infrastructure Docker Test Suite"
-  echo "   Platform: $(detect_platform)"
   echo "   Date: $(date)"
   echo "   Run ID: $RUN_ID"
   echo "======================================================"
@@ -36,7 +34,7 @@ show_usage() {
   echo ""
   echo "Options:"
   echo "  -c, --category CATEGORY  Test category to run (unit, integration, security,"
-  echo "                           performance, image, config, or all) [default: all]"
+  echo "                           performance, image, config, db_monitoring, or all) [default: all]"
   echo "  -v, --verbose            Enable verbose output"
   echo "  --skip-setup             Skip environment setup"
   echo "  --skip-cleanup           Skip environment cleanup"
@@ -101,7 +99,7 @@ setup_environment() {
   if [ -f "$PROJECT_ROOT/docker-compose.yml" ]; then
     log_message "INFO" "Starting Docker Compose environment"
     cd "$PROJECT_ROOT" || exit 1
-    "$(docker_cmd)" compose up -d
+    docker compose up -d
     
     # Wait for services to initialize
     log_message "INFO" "Waiting for services to initialize..."
@@ -143,6 +141,10 @@ run_test_category() {
       test_dir="$TEST_DIR/config_validation"
       description="Configuration Validation Tests"
       ;;
+    db_monitoring)
+      test_dir="$TEST_DIR/db_monitoring"
+      description="Database Monitoring Tests"
+      ;;
     *)
       log_message "ERROR" "Unknown test category: $category"
       return 1
@@ -179,11 +181,11 @@ run_test_script() {
   # Run the test script
   if [ $VERBOSE -eq 1 ]; then
     # Run with output to console in verbose mode
-    sh "$test_script" | tee "$output_file"
+    bash "$test_script" | tee "$output_file"
     test_result=${PIPESTATUS[0]}
   else
     # Run with output to log file only
-    sh "$test_script" > "$output_file" 2>&1
+    bash "$test_script" > "$output_file" 2>&1
     test_result=$?
   fi
   
@@ -216,7 +218,7 @@ cleanup_environment() {
   if [ -f "$PROJECT_ROOT/docker-compose.yml" ]; then
     log_message "INFO" "Stopping Docker Compose environment"
     cd "$PROJECT_ROOT" || exit 1
-    "$(docker_cmd)" compose down
+    docker compose down
   fi
 }
 
@@ -281,7 +283,7 @@ main() {
   # Run tests based on category
   if [ "$TEST_CATEGORIES" = "all" ]; then
     # Run all test categories
-    for category in unit integration security performance image config; do
+    for category in unit integration security performance image config db_monitoring; do
       run_test_category "$category"
       FAILED_TESTS=$((FAILED_TESTS + $?))
     done

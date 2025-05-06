@@ -50,43 +50,10 @@ jobs:
           docker-compose run test-runner
           docker-compose down
           
-      - name: Run unified tests
+      - name: Run database monitoring tests
         run: |
-          chmod +x testing/bin/unified/test-runner.sh
-          ./runtests.sh --verbose
-          
-  windows-tests:
-    name: Run Tests on Windows
-    runs-on: windows-latest
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v3
-      
-      - name: Verify Docker installation
-        run: docker --version
-        
-      - name: Set file permissions
-        shell: bash
-        run: |
-          chmod +x testing/bin/*.sh testing/lib/*.sh testing/tests/unit/*.sh testing/tests/image_validation/*.sh testing/bin/unified/*.sh
-      
-      - name: Run unit tests in Docker
-        shell: bash
-        run: |
-          docker run --rm -v "$(pwd):/app" alpine:latest sh -c "cd /app && chmod +x /app/testing/lib/*.sh /app/testing/tests/unit/*.sh && /app/testing/tests/unit/environment_test.sh"
-    
-      - name: Run image validation tests in Docker
-        shell: bash
-        run: |
-          docker run --rm -v "$(pwd):/app" -v //var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && chmod +x /app/testing/lib/*.sh /app/testing/tests/image_validation/*.sh && /app/testing/tests/image_validation/layer_test.sh"
-          
-      - name: Run unified tests
-        shell: bash
-        run: |
-          echo "Running tests with unified test runner"
-          chmod +x ./testing/bin/unified/test-runner.sh
-          ./runtests.sh --verbose
+          echo "Running database monitoring tests"
+          docker-compose up -d
+          sleep 30 # Allow services to initialize
+          docker run --rm --network host -v ${{ github.workspace }}:/app alpine:latest sh -c "cd /app && chmod +x /app/testing/tests/db_monitoring/*.sh && /app/testing/tests/db_monitoring/db_integration_test.sh"
+          docker-compose down

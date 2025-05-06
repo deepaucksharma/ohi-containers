@@ -43,55 +43,70 @@ jobs:
       - name: Set up Docker
         uses: docker/setup-buildx-action@v2
         
+      - name: Set up Docker Compose
+        run: |
+          # Install Docker Compose if not available
+          if ! command -v docker-compose &> /dev/null; then
+            sudo curl -L "https://github.com/docker/compose/releases/download/v2.23.3/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+          fi
+          
       - name: Environment Information
         run: |
           echo "Running on Linux"
           uname -a
           docker --version
           docker-compose --version
-          ls -la ${{ github.workspace }}/docker
+          ls -la
       
       - name: Debug Mode - List Files
         if: ${{ inputs.debug_mode }}
         run: |
           echo "Debug mode enabled - Listing all files"
-          find ${{ github.workspace }}/docker -type f -name "*.sh" | sort
+          find . -type f -name "*.sh" | sort
           
           echo "Checking file permissions"
-          ls -la ${{ github.workspace }}/docker/bin/
-          ls -la ${{ github.workspace }}/docker/lib/
-          ls -la ${{ github.workspace }}/docker/tests/unit/
+          ls -la ./bin/
+          ls -la ./lib/
+          ls -la ./tests/unit/
           
           echo "Directory structure"
-          find ${{ github.workspace }}/docker -type d | sort
+          find . -type d | sort
       
       - name: Fix Permissions
         run: |
-          chmod +x ${{ github.workspace }}/docker/bin/*.sh
-          chmod +x ${{ github.workspace }}/docker/lib/*.sh
-          chmod +x ${{ github.workspace }}/docker/tests/*/*.sh
+          chmod +x ./bin/*.sh
+          chmod +x ./lib/*.sh
+          chmod +x ./tests/*/*.sh
+          chmod +x ./bin/unified/*.sh
       
       - name: Run Unit Tests
         if: ${{ inputs.test_category == 'unit' || inputs.test_category == 'all' }}
         run: |
           echo "Running unit tests in Docker container"
-          docker run --rm -v ${{ github.workspace }}/docker:/app alpine:latest sh -c "cd /app && ls -la && chmod +x /app/lib/*.sh /app/tests/unit/*.sh && /app/tests/unit/environment_test.sh"
+          docker run --rm -v ${{ github.workspace }}:/app alpine:latest sh -c "cd /app && ls -la && chmod +x /app/lib/*.sh /app/tests/unit/*.sh && /app/tests/unit/environment_test.sh"
       
       - name: Run Image Validation Tests
         if: ${{ inputs.test_category == 'image' || inputs.test_category == 'all' }}
         run: |
           echo "Running image validation tests in Docker container"
-          docker run --rm -v ${{ github.workspace }}/docker:/app -v /var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && chmod +x /app/lib/*.sh /app/tests/image_validation/*.sh && /app/tests/image_validation/layer_test.sh"
+          docker run --rm -v ${{ github.workspace }}:/app -v /var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && chmod +x /app/lib/*.sh /app/tests/image_validation/*.sh && /app/tests/image_validation/layer_test.sh"
       
       - name: Run Integration Tests
         if: ${{ inputs.test_category == 'integration' || inputs.test_category == 'all' }}
         run: |
           echo "Running integration tests with Docker Compose"
-          cd ${{ github.workspace }}/docker
           docker-compose up -d
           docker-compose ps
           docker-compose run test-runner
           docker-compose down
+          
+      - name: Run Unified Tests
+        if: ${{ inputs.test_category == 'all' }}
+        run: |
+          echo "Running tests with unified test runner"
+          chmod +x ./bin/unified/test-runner.sh
+          ./bin/unified/test-runner.sh --verbose
   
   debug-windows:
     name: Debug Tests on Windows
@@ -111,41 +126,50 @@ jobs:
           echo "Running on Windows"
           systeminfo | findstr /B /C:"OS Name" /C:"OS Version"
           docker --version
-          docker-compose --version
-          ls -la ${{ github.workspace }}/docker
+          docker-compose --version || echo "Docker Compose not available"
+          ls -la
       
       - name: Debug Mode - List Files
         if: ${{ inputs.debug_mode }}
         shell: bash
         run: |
           echo "Debug mode enabled - Listing all files"
-          find ${{ github.workspace }}/docker -type f -name "*.sh" | sort
+          find . -type f -name "*.sh" | sort
           
           echo "Checking file permissions"
-          ls -la ${{ github.workspace }}/docker/bin/
-          ls -la ${{ github.workspace }}/docker/lib/
-          ls -la ${{ github.workspace }}/docker/tests/unit/
+          ls -la ./bin/
+          ls -la ./lib/
+          ls -la ./tests/unit/
           
           echo "Directory structure"
-          find ${{ github.workspace }}/docker -type d | sort
+          find . -type d | sort
       
       - name: Fix Permissions
         shell: bash
         run: |
-          chmod +x ${{ github.workspace }}/docker/bin/*.sh
-          chmod +x ${{ github.workspace }}/docker/lib/*.sh
-          chmod +x ${{ github.workspace }}/docker/tests/*/*.sh
+          chmod +x ./bin/*.sh
+          chmod +x ./lib/*.sh
+          chmod +x ./tests/*/*.sh
+          chmod +x ./bin/unified/*.sh
       
       - name: Run Unit Tests
         if: ${{ inputs.test_category == 'unit' || inputs.test_category == 'all' }}
         shell: bash
         run: |
           echo "Running unit tests in Docker container"
-          docker run --rm -v "${{ github.workspace }}/docker:/app" alpine:latest sh -c "cd /app && ls -la && chmod +x /app/lib/*.sh /app/tests/unit/*.sh && /app/tests/unit/environment_test.sh"
+          docker run --rm -v "${{ github.workspace }}:/app" alpine:latest sh -c "cd /app && ls -la && chmod +x /app/lib/*.sh /app/tests/unit/*.sh && /app/tests/unit/environment_test.sh"
       
       - name: Run Image Validation Tests
         if: ${{ inputs.test_category == 'image' || inputs.test_category == 'all' }}
         shell: bash
         run: |
           echo "Running image validation tests in Docker container"
-          docker run --rm -v "${{ github.workspace }}/docker:/app" -v "//var/run/docker.sock:/var/run/docker.sock" alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && chmod +x /app/lib/*.sh /app/tests/image_validation/*.sh && /app/tests/image_validation/layer_test.sh"
+          docker run --rm -v "${{ github.workspace }}:/app" -v //var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && chmod +x /app/lib/*.sh /app/tests/image_validation/*.sh && /app/tests/image_validation/layer_test.sh"
+          
+      - name: Run Unified Tests
+        if: ${{ inputs.test_category == 'all' }}
+        shell: bash
+        run: |
+          echo "Running tests with unified test runner"
+          chmod +x ./bin/unified/test-runner.sh
+          ./bin/unified/test-runner.sh --verbose

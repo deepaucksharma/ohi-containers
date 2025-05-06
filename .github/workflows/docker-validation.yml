@@ -4,11 +4,21 @@ on:
   push:
     branches: [ main, master ]
     paths:
-      - 'docker/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'configs/**'
+      - 'scripts/**'
+      - 'testing/**'
+      - '.github/workflows/**'
   pull_request:
     branches: [ main, master ]
     paths:
-      - 'docker/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'configs/**'
+      - 'scripts/**'
+      - 'testing/**'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 jobs:
@@ -16,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./docker
+        working-directory: ./
 
     steps:
       - name: Checkout code
@@ -74,7 +84,7 @@ jobs:
           else
             echo "test-runner container not found, running tests directly"
             docker run --rm \
-              --network docker_backend \
+              --network backend \
               -v $(pwd)/testing:/testing \
               -v $(pwd)/testing/output:/output \
               alpine:3.18 sh -c "cd /testing && ./tests/run_all_tests.sh"
@@ -95,7 +105,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: test-logs-linux
-          path: docker/logs/
+          path: logs/
       
       - name: Clean up
         if: always()

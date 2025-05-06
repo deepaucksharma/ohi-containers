@@ -4,11 +4,21 @@ on:
   push:
     branches: [ main, master ]
     paths:
-      - 'docker/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'configs/**'
+      - 'scripts/**'
+      - 'testing/**'
+      - '.github/workflows/**'
   pull_request:
     branches: [ main, master ]
     paths:
-      - 'docker/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'configs/**'
+      - 'scripts/**'
+      - 'testing/**'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 jobs:
@@ -16,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./docker
+        working-directory: ./
     
     steps:
       - uses: actions/checkout@v3
@@ -69,7 +79,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: test-logs-linux
-          path: docker/logs/
+          path: logs/
       
       - name: Clean up
         if: always()
@@ -79,7 +89,7 @@ jobs:
     runs-on: windows-latest
     defaults:
       run:
-        working-directory: ./docker
+        working-directory: ./
         shell: bash
     
     steps:
@@ -123,7 +133,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: test-logs-windows
-          path: docker/logs/
+          path: logs/
       
       - name: Clean up
         if: always()

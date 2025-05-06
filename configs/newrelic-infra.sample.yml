@@ -1,6 +1,6 @@
 ---
 # Main New Relic Infrastructure agent configuration
-license_key: 0123456789012345678901234567890123456789
+license_key: YOUR_LICENSE_KEY_HERE
 
 # Staging or production environment
 staging: true

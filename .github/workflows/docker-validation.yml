@@ -14,10 +14,10 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         
       - name: Set up Docker
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         
       - name: Set up Docker Compose
         run: |
@@ -53,7 +53,7 @@ jobs:
       - name: Run unified tests
         run: |
           chmod +x testing/bin/unified/test-runner.sh
-          ./testing/runners/test.sh --verbose
+          ./runtests.sh --verbose
           
   windows-tests:
     name: Run Tests on Windows
@@ -61,10 +61,10 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         
       - name: Set up Docker
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
       
       - name: Verify Docker installation
         run: docker --version
@@ -89,4 +89,4 @@ jobs:
         run: |
           echo "Running tests with unified test runner"
           chmod +x ./testing/bin/unified/test-runner.sh
-          ./testing/runners/test.sh --verbose
+          ./runtests.sh --verbose

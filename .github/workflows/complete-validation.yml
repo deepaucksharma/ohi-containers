@@ -20,7 +20,7 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         
       - name: Install dependencies
         run: |
@@ -28,26 +28,26 @@ jobs:
           sudo apt-get install -y jq
           
       - name: Set up Docker
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         
       - name: Run unit tests
         id: unit_tests
         run: |
           # Create test results output directory with proper permissions
           timestamp=$(date +%Y%m%d%H%M%S)
-          mkdir -p tests/output/$timestamp
+          mkdir -p testing/output/$timestamp
           
           # Make scripts executable
-          chmod +x lib/*.sh bin/*.sh tests/unit/*.sh
+          chmod +x testing/lib/*.sh testing/bin/*.sh testing/tests/unit/*.sh testing/bin/unified/*.sh
           
           # Run each unit test and collect results
           echo "::group::Environment Test"
-          docker run --rm -v ${{ github.workspace }}:/app alpine:latest sh -c "cd /app && /app/tests/unit/environment_test.sh | tee /app/tests/output/$timestamp/environment_test.log"
+          docker run --rm -v ${{ github.workspace }}:/app alpine:latest sh -c "cd /app && /app/testing/tests/unit/environment_test.sh | tee /app/testing/output/$timestamp/environment_test.log"
           environment_exit=$?
           echo "::endgroup::"
           
           echo "::group::Config Parser Test"
-          docker run --rm -v ${{ github.workspace }}:/app alpine:latest sh -c "cd /app && /app/tests/unit/config_parser_test.sh | tee /app/tests/output/$timestamp/config_parser_test.log"
+          docker run --rm -v ${{ github.workspace }}:/app alpine:latest sh -c "cd /app && /app/testing/tests/unit/config_parser_test.sh | tee /app/testing/output/$timestamp/config_parser_test.log"
           config_exit=$?
           echo "::endgroup::"
           
@@ -62,10 +62,11 @@ jobs:
           fi
         
       - name: Upload unit test results
-        uses: actions/upload-artifact@v3
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: unit-test-logs
-          path: tests/output/
+          path: testing/output/
           retention-days: 7
   
   image-tests:
@@ -74,30 +75,30 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         
       - name: Set up Docker
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         
       - name: Run image validation tests
         id: image_tests
         run: |
           # Create test results output directory
           timestamp=$(date +%Y%m%d%H%M%S)
-          mkdir -p tests/output/$timestamp
+          mkdir -p testing/output/$timestamp
           
           # Make scripts executable
-          chmod +x lib/*.sh bin/*.sh tests/image_validation/*.sh
+          chmod +x testing/lib/*.sh testing/bin/*.sh testing/tests/image_validation/*.sh
           
           # Run image layer test
           echo "::group::Layer Test"
-          docker run --rm -v ${{ github.workspace }}:/app -v /var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && /app/tests/image_validation/layer_test.sh | tee /app/tests/output/$timestamp/layer_test.log"
+          docker run --rm -v ${{ github.workspace }}:/app -v /var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && /app/testing/tests/image_validation/layer_test.sh | tee /app/testing/output/$timestamp/layer_test.log"
           layer_exit=$?
           echo "::endgroup::"
           
           # Run image content test
           echo "::group::Content Test"
-          docker run --rm -v ${{ github.workspace }}:/app -v /var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && /app/tests/image_validation/content_test.sh | tee /app/tests/output/$timestamp/content_test.log"
+          docker run --rm -v ${{ github.workspace }}:/app -v /var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && /app/testing/tests/image_validation/content_test.sh | tee /app/testing/output/$timestamp/content_test.log"
           content_exit=$?
           echo "::endgroup::"
           
@@ -112,10 +113,11 @@ jobs:
           fi
         
       - name: Upload image validation test results
-        uses: actions/upload-artifact@v3
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: image-test-logs
-          path: tests/output/
+          path: testing/output/
           retention-days: 7
   
   integration-tests:
@@ -125,7 +127,7 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         
       - name: Set up Docker Compose
         run: |
@@ -139,8 +141,8 @@ jobs:
       - name: Run integration tests
         id: integration_tests
         run: |
-          mkdir -p tests/output
-          chmod +x lib/*.sh bin/*.sh tests/integration/*.sh
+          mkdir -p testing/output
+          chmod +x testing/lib/*.sh testing/bin/*.sh testing/tests/integration/*.sh
           
           # Start Docker Compose environment
           docker-compose up -d
@@ -167,10 +169,11 @@ jobs:
           fi
         
       - name: Upload integration test results
-        uses: actions/upload-artifact@v3
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: integration-test-logs
-          path: tests/output/
+          path: testing/output/
           retention-days: 7
   
   windows-compatibility:
@@ -179,23 +182,23 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         
       - name: Set up Docker
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
       
       - name: Run unit tests on Windows
         shell: bash
         run: |
-          mkdir -p tests/output
-          chmod +x lib/*.sh bin/*.sh tests/unit/*.sh
+          mkdir -p testing/output
+          chmod +x testing/lib/*.sh testing/bin/*.sh testing/tests/unit/*.sh
           
           # Create test results output directory
           timestamp=$(date +%Y%m%d%H%M%S)
-          mkdir -p tests/output/$timestamp
+          mkdir -p testing/output/$timestamp
           
           # Run tests in Docker container
-          docker run --rm -v "$(pwd):/app" alpine:latest sh -c "cd /app && /app/tests/unit/environment_test.sh | tee /app/tests/output/$timestamp/windows_environment_test.log"
+          docker run --rm -v "$(pwd):/app" alpine:latest sh -c "cd /app && /app/testing/tests/unit/environment_test.sh | tee /app/testing/output/$timestamp/windows_environment_test.log"
           
           if [ $? -eq 0 ]; then
             echo "✅ Windows compatibility test passed!"
@@ -205,10 +208,11 @@ jobs:
           fi
       
       - name: Upload Windows test results
-        uses: actions/upload-artifact@v3
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: windows-test-logs
-          path: tests/output/
+          path: testing/output/
           retention-days: 7
   
   test-summary:
@@ -219,10 +223,10 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         
       - name: Download all workflow run artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         
       - name: Generate Test Summary
         run: |
@@ -268,7 +272,8 @@ jobs:
           fi
       
       - name: Upload Test Summary
-        uses: actions/upload-artifact@v3
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: test-summary
           path: summary.md

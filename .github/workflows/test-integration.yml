@@ -26,21 +26,24 @@ jobs:
       
       - name: Make scripts executable
         run: |
-          chmod +x scripts/*.sh
-          chmod +x testing/tests/run_all_tests.sh
-          chmod +x testing/tests/config_validation/*.sh
-          chmod +x testing/tests/integration/mysql/*.sh
-          chmod +x testing/tests/integration/postgres/*.sh
-          chmod +x testing/tests/security/*.sh
-          chmod +x testing/lib/*.sh
+          find . -name "*.sh" -exec chmod +x {} \;
       
       - name: Create output directory
         run: mkdir -p testing/output
       
+      - name: Build Docker image
+        run: |
+          docker build -t newrelic-infra:latest .
+          docker images
+      
+      - name: Run image validation tests
+        run: |
+          ./testing/tests/image_validation/layer_test.sh
+      
       - name: Start the environment
         run: |
           export NEW_RELIC_LICENSE_KEY=dummy012345678901234567890123456789
-          docker compose -f docker-compose.yml up -d --build
+          ./scripts/compose-helper.sh -f docker-compose.yml up -d
       
       - name: Wait for containers to be ready
         run: |
@@ -55,10 +58,11 @@ jobs:
         if: always()
         run: |
           mkdir -p logs
-          docker logs test-newrelic-infra > logs/newrelic-infra.log 2>&1 || true
-          docker logs test-mysql > logs/mysql.log 2>&1 || true
-          docker logs test-postgres > logs/postgres.log 2>&1 || true
-          docker logs mock-newrelic > logs/mockbackend.log 2>&1 || true
+          for container in $(docker ps -aq); do
+            name=$(docker inspect --format='{{.Name}}' $container | sed 's/\///')
+            echo "Collecting logs for $name"
+            docker logs $container > logs/$name.log 2>&1 || true
+          done
       
       - name: Upload logs
         if: always()
@@ -69,7 +73,7 @@ jobs:
       
       - name: Clean up
         if: always()
-        run: docker compose down -v
+        run: ./scripts/compose-helper.sh -f docker-compose.yml down -v
 
   test-windows:
     runs-on: windows-latest
@@ -84,10 +88,15 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       
+      - name: Build Docker image
+        run: |
+          docker build -t newrelic-infra:latest .
+          docker images
+      
       - name: Start the environment
         run: |
           export NEW_RELIC_LICENSE_KEY=dummy012345678901234567890123456789
-          docker compose -f docker-compose.yml up -d --build
+          ./scripts/compose-helper.sh -f docker-compose.yml up -d
       
       - name: Wait for containers to be ready
         run: |
@@ -103,10 +112,11 @@ jobs:
         if: always()
         run: |
           mkdir -p logs
-          docker logs test-newrelic-infra > logs/newrelic-infra.log 2>&1 || true
-          docker logs test-mysql > logs/mysql.log 2>&1 || true
-          docker logs test-postgres > logs/postgres.log 2>&1 || true
-          docker logs mock-newrelic > logs/mockbackend.log 2>&1 || true
+          for container in $(docker ps -aq); do
+            name=$(docker inspect --format='{{.Name}}' $container | sed 's/\///')
+            echo "Collecting logs for $name"
+            docker logs $container > logs/$name.log 2>&1 || true
+          done
       
       - name: Upload logs
         if: always()
@@ -117,4 +127,4 @@ jobs:
       
       - name: Clean up
         if: always()
-        run: docker compose down -v
+        run: ./scripts/compose-helper.sh -f docker-compose.yml down -v

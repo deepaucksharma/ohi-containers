@@ -1,12 +1,15 @@
 #!/bin/sh
 set -e
 
+# Support both license key environment variables
+export NRIA_LICENSE_KEY="${NRIA_LICENSE_KEY:-$NEW_RELIC_LICENSE_KEY}"
+
 # Process the configuration template with environment variables
 envsubst < /etc/newrelic-infra.yml.template > /etc/newrelic-infra.yml
 
 # Check if license key is provided
 if [ -z "${NRIA_LICENSE_KEY}" ] || [ "${NRIA_LICENSE_KEY}" = "" ]; then
-  echo "ERROR: NRIA_LICENSE_KEY environment variable is required but not set"
+  echo "ERROR: NRIA_LICENSE_KEY or NEW_RELIC_LICENSE_KEY environment variable is required but not set"
   exit 1
 fi
 

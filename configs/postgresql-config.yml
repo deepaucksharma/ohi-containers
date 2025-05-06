@@ -11,18 +11,19 @@ integrations:
       DATABASE: ${POSTGRES_DATABASE}
       COLLECTION_LIST: "ALL"
       
-      # Enable query performance monitoring (using the updated flag names)
-      ENABLE_QUERY_MONITORING: "true"
-      ENABLE_EXTENDED_METRICS: "true"
-      ENABLE_DEFAULT_METRICS_HIGHLIGHTS: "true"
+      # Enable query performance monitoring (using correct flag names)
+      METRICS: "1"
+      EXTENDED_METRICS: "1"
+      DEFAULT_METRICS_HIGHLIGHTS: "1"
+      ENABLE_QUERY_MONITORING: "1"  # Keep this modern flag name
       
       # Metrics collection categories
-      ENABLE_ALL_DATABASES: "true"
-      ENABLE_DB_LOCK_METRICS: "true"
-      ENABLE_DB_BLOAT_METRICS: "true"
-      ENABLE_DB_VACUUM_METRICS: "true"
-      ENABLE_PG_STAT_STATEMENTS: "true"
-      ENABLE_PG_STAT_ACTIVITY: "true"
+      COLLECT_METRICS_FROM_ALL_DATABASES: "1"
+      COLLECT_DB_LOCK_METRICS: "1"
+      COLLECT_DB_BLOAT_METRICS: "1"
+      COLLECT_DB_VACUUM_METRICS: "1"
+      COLLECT_PG_STAT_STATEMENTS: "1"
+      COLLECT_PG_STAT_ACTIVITY: "1"
       
       # Set pg_stat_statements and pg_stat_activity queries
       PG_STAT_STATEMENTS_LIMIT: "50"

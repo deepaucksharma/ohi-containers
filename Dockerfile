@@ -38,9 +38,21 @@ RUN chmod +x /usr/local/bin/healthcheck.sh
 COPY scripts/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+# Create a non-root user and set permissions
+RUN useradd -u 1000 -m newrelic-user \
+    && chown -R newrelic-user:newrelic-user /var/log/newrelic-infra \
+    && chown -R newrelic-user:newrelic-user /var/log/mysql \
+    && chown -R newrelic-user:newrelic-user /var/log/test-results \
+    && chown -R newrelic-user:newrelic-user /var/db/newrelic-infra \
+    && chmod -R 755 /etc/newrelic-infra \
+    && chmod 755 /entrypoint.sh /usr/local/bin/healthcheck.sh
+
 # Configure healthcheck
 HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \
   CMD /usr/local/bin/healthcheck.sh
+
+# Switch to non-root user
+USER 1000
 
 # Use entrypoint script to process templates before starting the agent
 ENTRYPOINT ["/entrypoint.sh"]

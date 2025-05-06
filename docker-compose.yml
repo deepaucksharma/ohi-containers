@@ -1,13 +1,11 @@
-version: '3.8'
-
 services:
   # MySQL database for testing
   mysql:
     image: mysql:8.0
     container_name: test-mysql
     restart: unless-stopped
-    ports:
-      - "3306:3306"
+    networks:
+      - backend
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-test}
@@ -34,8 +32,8 @@ services:
     image: postgres:14
     container_name: test-postgres
     restart: unless-stopped
-    ports:
-      - "5432:5432"
+    networks:
+      - backend
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -60,8 +58,8 @@ services:
   mockbackend:
     image: wiremock/wiremock:2.35.0
     container_name: mock-newrelic
-    ports:
-      - "8080:8080"
+    networks:
+      - backend
     volumes:
       - ./testing/tests/fixtures/wiremock:/home/wiremock:ro
     command: --verbose --global-response-templating
@@ -77,6 +75,9 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: test-newrelic-infra
+    networks:
+      - backend
+      - external
     depends_on:
       mysql:
         condition: service_healthy
@@ -109,12 +110,19 @@ services:
       - ./configs/:/etc/newrelic-infra/integrations.d:ro
       - ./testing/output:/var/log/test-results
       - ./testing/output:/var/log/newrelic-infra
+      # Mount log directory as tmpfs to avoid excessive disk usage
+      - type: tmpfs
+        target: /var/log/newrelic-infra
+        tmpfs:
+          size: 100m
     # Let Docker use the HEALTHCHECK from the Dockerfile
 
   # Test runner
   test-runner:
     image: alpine:3.18
     container_name: test-runner
+    networks:
+      - backend
     depends_on:
       newrelic-infra:
         condition: service_healthy
@@ -122,3 +130,13 @@ services:
       - ./testing:/testing:ro
       - ./testing/output:/output
     command: sh -c "cd /testing && ./tests/run_all_tests.sh"
+
+# Define networks
+networks:
+  # Internal network for communication between services
+  backend:
+    driver: bridge
+    internal: true
+  # External network for communication with the outside world
+  external:
+    driver: bridge

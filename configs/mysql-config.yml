@@ -9,27 +9,27 @@ integrations:
       USERNAME: ${MYSQL_USER}
       PASSWORD: ${MYSQL_PASSWORD}
       DATABASE: ${MYSQL_DATABASE}
-      COLLECT_ALL_DATABASES: "true"
+      COLLECT_ALL_DATABASES: "1"
       
       # Enable query performance monitoring
-      ENABLE_QUERY_MONITORING: "true"
-      ENABLE_SLOW_QUERIES: "true"
-      ENABLE_EXTENDED_METRICS: "true"
-      ENABLE_INNODB_METRICS: "true"
-      ENABLE_INNODB_METRICS_AS_SAMPLES: "true"
-      ENABLE_GLOBAL_STATUS_METRICS: "true"
+      METRICS: "1"
+      SLOW_QUERIES: "1"
+      EXTENDED_METRICS: "1"
+      EXTENDED_INNODB_METRICS: "1"
+      EXTENDED_INNODB_METRICS_AS_SAMPLES: "1"
+      GLOBAL_STATS: "1"
       
       # Metrics collection categories
-      ENABLE_SLAVE_METRICS: "true"
-      ENABLE_PROCESSLIST_METRICS: "true"
-      ENABLE_TABLE_SCHEMA_METRICS: "true"
-      ENABLE_TABLESPACE_METRICS: "true"
+      COLLECT_SLAVE_METRICS: "1"
+      COLLECT_PROCESSLIST_METRICS: "1"
+      COLLECT_TABLE_SCHEMA_METRICS: "1"
+      COLLECT_TABLESPACE_METRICS: "1"
       
       # Additional settings for query monitoring
       TIMEOUT: "30"
       STATUS_METRICS_QUERY_RETRY_COUNT: "3"
-      ENABLE_EXTENDED_SLOW_QUERIES: "true"
-      ENABLE_EXPLAIN_SLOW_QUERIES: "true"
+      EXTENDED_SLOW_QUERIES: "1"
+      EXPLAIN_SLOW_QUERIES: "1"
       
       # Custom queries can be added here
       CUSTOM_METRICS_QUERY: |

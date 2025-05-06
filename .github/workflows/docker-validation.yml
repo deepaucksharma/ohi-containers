@@ -1,60 +1,102 @@
-name: Docker Validation Framework Tests
+name: Docker Validation Tests
 
 on:
   push:
     branches: [ main, master ]
+    paths:
+      - 'docker/**'
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch:  # Allow manual triggering
+    paths:
+      - 'docker/**'
+  workflow_dispatch:
 
 jobs:
-  linux-tests:
-    name: Run Tests on Linux
+  validate-docker-image:
     runs-on: ubuntu-latest
-    
+    defaults:
+      run:
+        working-directory: ./docker
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v3
-        
-      - name: Set up Docker Compose
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+      
+      - name: Debug Environment
         run: |
-          # Install Docker Compose if not available
-          if ! command -v docker-compose &> /dev/null; then
-            sudo curl -L "https://github.com/docker/compose/releases/download/v2.23.3/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-            sudo chmod +x /usr/local/bin/docker-compose
-          fi
-          docker-compose --version
-        
-      - name: Verify Docker installation
-        run: docker --version
-        
-      - name: Set up test environment
+          docker version
+          docker compose version
+          ls -la
+          pwd
+      
+      - name: Make scripts executable
         run: |
-          chmod +x testing/bin/*.sh testing/lib/*.sh testing/tests/unit/*.sh testing/tests/image_validation/*.sh testing/bin/unified/*.sh
-          
-      - name: Run unit tests
+          find . -name "*.sh" -exec chmod +x {} \;
+      
+      - name: Create output directory
+        run: mkdir -p testing/output
+      
+      - name: Build Docker image first
         run: |
-          # Run tests with the correct mount path
-          docker run --rm -v ${{ github.workspace }}:/app alpine:latest sh -c "cd /app && chmod +x /app/testing/lib/*.sh /app/testing/tests/unit/*.sh && /app/testing/tests/unit/environment_test.sh"
-        
+          docker build -t newrelic-infra:latest .
+          docker images
+      
       - name: Run image validation tests
+        run: ./testing/tests/image_validation/layer_test.sh
+      
+      - name: Start the environment with Docker Compose v2
+        env:
+          NEW_RELIC_LICENSE_KEY: dummy012345678901234567890123456789
         run: |
-          docker run --rm -v ${{ github.workspace }}:/app -v /var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && chmod +x /app/testing/lib/*.sh /app/testing/tests/image_validation/*.sh && /app/testing/tests/image_validation/layer_test.sh"
+          docker compose -f docker-compose.yml up -d --build
+      
+      - name: Wait for containers to be ready
+        run: |
+          echo "Waiting for containers to be healthy..."
+          timeout 300 bash -c 'until docker ps | grep -q "(healthy)"; do sleep 5; done'
       
       - name: Run integration tests
         run: |
-          docker-compose up -d
-          docker-compose ps
-          docker-compose run test-runner
-          docker-compose down
-          
-      - name: Run database monitoring tests
+          docker ps
+          if [ "$(docker ps -q -f name=test-runner)" ]; then
+            docker exec test-runner sh -c "/testing/tests/run_all_tests.sh"
+          else
+            echo "test-runner container not found, running tests directly"
+            docker run --rm \
+              --network docker_backend \
+              -v $(pwd)/testing:/testing \
+              -v $(pwd)/testing/output:/output \
+              alpine:3.18 sh -c "cd /testing && ./tests/run_all_tests.sh"
+          fi
+      
+      - name: Collect logs
+        if: always()
         run: |
-          echo "Running database monitoring tests"
-          docker-compose up -d
-          sleep 30 # Allow services to initialize
-          docker run --rm --network host -v ${{ github.workspace }}:/app alpine:latest sh -c "cd /app && chmod +x /app/testing/tests/db_monitoring/*.sh && /app/testing/tests/db_monitoring/db_integration_test.sh"
-          docker-compose down
+          mkdir -p logs
+          for container in $(docker ps -aq); do
+            name=$(docker inspect --format='{{.Name}}' $container | sed 's/\///')
+            echo "Collecting logs for $name"
+            docker logs $container > logs/$name.log 2>&1 || true
+          done
+      
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-logs-linux
+          path: docker/logs/
+      
+      - name: Clean up
+        if: always()
+        run: docker compose down -v

@@ -20,53 +20,46 @@ The codebase has been streamlined and improved in the following ways:
 ## Project Structure
 
 ```
-docker/                              # Root directory
-├── .env                             # Environment variables
-├── .github/                         # GitHub workflow configurations
-├── configs/                         # Configuration templates
-│   ├── newrelic-infra.yml           # Main agent config
-│   ├── mysql-config.yml             # MySQL integration config
-│   └── postgresql-config.yml        # PostgreSQL integration config
-├── docker-compose.yml               # Main Docker Compose file
-├── Dockerfile                       # Main Dockerfile
-├── kubernetes/                      # Kubernetes configurations
-├── README.md                        # This documentation file
-├── runtests.bat                     # Windows test runner wrapper
-├── runtests.sh                      # Linux test runner wrapper
-├── scripts/                         # Operational scripts
-│   └── healthcheck.sh               # Container health check
-└── testing/                         # All testing-related code
-    ├── bin/                         # Test runner scripts
-    │   ├── cleanup-environment.sh   # Environment cleanup script
-    │   ├── setup-environment.sh     # Environment setup script
-    │   └── unified/                 # Unified test runner
-    │       └── test-runner.sh       # Core test runner implementation
-    ├── docker-compose-test.yml      # Testing-specific Docker Compose
-    ├── fixtures/                    # Test data fixtures
-    ├── lib/                         # Testing libraries
-    │   ├── assertions.sh            # Test assertions
-    │   ├── common.sh                # Common utility functions
-    │   └── database_utils.sh        # Database utility functions
-    ├── output/                      # Test output directory
-    ├── runners/                     # Test runner entry points
-    │   ├── test.bat                 # Windows test runner
-    │   └── test.sh                  # Linux test runner
-    └── tests/                       # Test scripts by category
-        ├── fixtures/                # Test fixtures
-        ├── image_validation/        # Image validation tests
-        ├── integration/             # Integration tests
-        ├── performance/             # Performance tests
-        ├── security/                # Security tests
-        └── unit/                    # Unit tests
+D:\NewRelic\db-aws\                 # Repository root
+└── docker/                         # Docker resources
+    ├── .env                        # Environment variables
+    ├── .github/                    # GitHub workflow configurations
+    │   └── workflows/              # CI workflow definitions
+    ├── configs/                    # Configuration templates
+    │   ├── newrelic-infra.yml      # Main agent config
+    │   ├── mysql-config.yml        # MySQL integration config
+    │   └── postgresql-config.yml   # PostgreSQL integration config
+    ├── docker-compose.yml          # Main Docker Compose file
+    ├── Dockerfile                  # Main Dockerfile
+    ├── kubernetes/                 # Kubernetes configurations
+    ├── README.md                   # This documentation file
+    ├── runtests.bat                # Windows test runner wrapper
+    ├── runtests.sh                 # Linux test runner wrapper
+    ├── scripts/                    # Operational scripts
+    │   ├── entrypoint.sh           # Container entrypoint script
+    │   └── healthcheck.sh          # Container health check
+    └── testing/                    # All testing-related code
+        ├── bin/                    # Test runner scripts
+        ├── fixtures/               # Test data fixtures
+        │   ├── mysql/              # MySQL test data
+        │   ├── postgres/           # PostgreSQL test data
+        │   └── wiremock/           # Mock backend configs
+        ├── lib/                    # Testing libraries
+        │   ├── assertions.sh       # Test assertions
+        │   ├── common.sh           # Common utility functions
+        │   └── database_utils.sh   # Database utility functions
+        ├── output/                 # Test output directory
+        └── tests/                  # Test scripts by category
+            ├── config_validation/  # Config validation tests
+            ├── image_validation/   # Image validation tests
+            ├── integration/        # Integration tests
+            │   ├── mysql/          # MySQL-specific tests
+            │   └── postgres/       # PostgreSQL-specific tests
+            ├── performance/        # Performance tests
+            ├── run_all_tests.sh    # Main test runner script
+            ├── security/           # Security tests
+            └── unit/               # Unit tests
 ```
-
-## Getting Started
-
-### Prerequisites
-
-- Docker Engine (Windows or Linux)
-- Docker Compose
-- Bash-compatible shell (Linux or Git Bash/WSL for Windows)
 
 ## ✨ New: Automated E2E & Integration Tests
 
@@ -92,10 +85,10 @@ export NEW_RELIC_LICENSE_KEY=dummy012345678901234567890123456789
 export MYSQL_ROOT_PASSWORD=root
 # …
 
-docker-compose -f docker-compose.yml up -d --build
+docker compose -f docker-compose.yml up -d --build
 # Wait until health-checks pass (≈30 s)
-docker-compose exec test-runner sh -c "/testing/tests/run_all_tests.sh"
-docker-compose down
+docker exec test-runner sh -c "/testing/tests/run_all_tests.sh"
+docker compose down
 ```
 
 All E2E cases are runnable through the **GitHub Actions workflows** out-of-the-box.
@@ -119,6 +112,14 @@ Scripts run inside Alpine with `bash`, `jq`, `curl` pre-installed.
 ---
 
 Happy hacking 👩‍💻👨‍💻— drop issues or PRs if you spot a gap!
+
+## Getting Started
+
+### Prerequisites
+
+- Docker Engine (Windows or Linux)
+- Docker Compose
+- Bash-compatible shell (Linux or Git Bash/WSL for Windows)
 
 ### Running Tests
 
@@ -165,41 +166,6 @@ To add a new test:
 2. Use common utility functions from `testing/lib/common.sh`
 3. Use assertion functions from `testing/lib/assertions.sh`
 4. Make sure your test script returns 0 on success and non-zero on failure
-
-Example test structure:
-
-```bash
-#!/bin/sh
-# Test description
-# Version: 1.0.0
-
-# Determine script location regardless of platform
-script_dir=$(dirname "$0")
-project_root=$(cd "$script_dir/../../.." && pwd)
-testing_root=$(cd "$script_dir/../.." && pwd)
-
-# Source test utilities
-. "$testing_root/lib/common.sh"
-. "$testing_root/lib/assertions.sh"
-
-# Test functions
-test_something() {
-  # Test logic
-  assert_equals "expected" "actual" "Test message"
-}
-
-# Run all tests
-run_tests() {
-  # Run tests
-  test_something
-  
-  # Print test summary
-  print_test_summary
-}
-
-# Run tests
-run_tests
-```
 
 ## Platform Independence
 

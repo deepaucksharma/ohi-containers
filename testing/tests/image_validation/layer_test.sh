@@ -1,102 +1,87 @@
 #!/bin/sh
-# Image layer validation tests
+# Image layer validation test
 # Version: 1.0.0
 
-# Determine script location regardless of platform
+# Source test utilities
 script_dir=$(dirname "$0")
 testing_root=$(cd "$script_dir/../.." && pwd)
-
-# Source test utilities
 . "$testing_root/lib/common.sh"
 . "$testing_root/lib/assertions.sh"
 
-# Get Docker command
-docker_command=$(docker_cmd)
+# Test variables
+TEST_ID="LAYER-01"
+TEST_NAME="Image Layer Test"
+TEST_DESCRIPTION="Verify Docker image layer count and size"
+IMAGE_NAME="newrelic-infra:latest"
+MAX_LAYERS=20
+MAX_SIZE_MB=500
 
-# Get image name from docker-compose.yml
-get_image_name() {
-  # Extract image name from Dockerfile context in docker-compose.yml
-  # For this test, we'll use a simple approach - just test the image built by docker-compose
-  echo "newrelic-infra:latest"
-}
+log_message "INFO" "Running image layer validation tests"
 
-# Test number of layers in image
-test_image_layers() {
-  log_message "INFO" "Testing number of layers in image"
+# Check if image exists and build if it doesn't
+log_message "INFO" "Testing number of layers in image"
+log_message "INFO" "Checking layers for image: $IMAGE_NAME"
+
+if ! docker image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
+  log_message "INFO" "Image does not exist: $IMAGE_NAME. Building now..."
   
-  local image_name=$(get_image_name)
-  log_message "INFO" "Checking layers for image: $image_name"
+  # Move to directory containing Dockerfile (repo root)
+  cd "$(dirname "$testing_root")" || exit 1
   
-  # Check if image exists
-  if ! "$docker_command" image inspect "$image_name" >/dev/null 2>&1; then
-    log_message "ERROR" "Image does not exist: $image_name"
-    log_message "INFO" "Building image"
-    cd "$(cd "$testing_root/.." && pwd)" || exit 1
-    "$docker_command" compose build
+  # Build the image
+  if ! docker build -t "$IMAGE_NAME" .; then
+    log_message "ERROR" "Failed to build image: $IMAGE_NAME"
+    exit 1
   fi
   
-  # Count number of layers
-  local layer_count=$("$docker_command" image inspect "$image_name" --format '{{len .RootFS.Layers}}' 2>/dev/null)
-  
-  # Check if layer count is reasonable
-  # Too many layers can indicate inefficient build
-  assert_less_than "$layer_count" 20 "Image has too many layers: $layer_count"
-  
-  log_message "INFO" "✅ Image has $layer_count layers (under the 20 layer limit)"
-}
+  log_message "INFO" "Successfully built image: $IMAGE_NAME"
+fi
+
+# Get number of layers
+LAYER_COUNT=$(docker image history "$IMAGE_NAME" | grep -v "IMAGE" | wc -l | tr -d ' ')
+
+# Check layer count
+assert_less_than "$LAYER_COUNT" "$MAX_LAYERS" "Image has too many layers: $LAYER_COUNT"
+log_message "INFO" "✅ Image has $LAYER_COUNT layers (under the $MAX_LAYERS layer limit)"
 
 # Test image size
-test_image_size() {
-  log_message "INFO" "Testing image size"
-  
-  local image_name=$(get_image_name)
-  log_message "INFO" "Checking size for image: $image_name"
-  
-  # Get image size in bytes
-  local image_size=$("$docker_command" image inspect "$image_name" --format '{{.Size}}' 2>/dev/null)
-  
-  # Convert to MB for readability
-  local size_mb=$((image_size / 1024 / 1024))
-  
-  # Check if size is reasonable
-  # Size limit depends on your requirements
-  assert_less_than "$size_mb" 500 "Image size exceeds 500MB: ${size_mb}MB"
-  
-  log_message "INFO" "✅ Image size is ${size_mb}MB (under the 500MB limit)"
-}
+log_message "INFO" "Testing image size"
+log_message "INFO" "Checking size for image: $IMAGE_NAME"
+
+# Get image size in MB
+IMAGE_SIZE=$(docker image inspect "$IMAGE_NAME" --format='{{.Size}}' | awk '{print $1/(1024*1024)}' | cut -d '.' -f 1)
+
+# Check image size
+assert_less_than "$IMAGE_SIZE" "$MAX_SIZE_MB" "Image size exceeds ${MAX_SIZE_MB}MB: ${IMAGE_SIZE}MB"
+log_message "INFO" "✅ Image size is ${IMAGE_SIZE}MB (under the ${MAX_SIZE_MB}MB limit)"
 
 # Test image labels
-test_image_labels() {
-  log_message "INFO" "Testing image labels"
-  
-  local image_name=$(get_image_name)
-  log_message "INFO" "Checking labels for image: $image_name"
-  
-  # Get image labels
-  local labels=$("$docker_command" image inspect "$image_name" --format '{{json .Config.Labels}}' 2>/dev/null)
-  
-  # Check for required labels
-  echo "$labels" | grep -q "maintainer"
-  assert_equals 0 $? "Image missing required label: maintainer"
-  
-  echo "$labels" | grep -q "version"
-  assert_equals 0 $? "Image missing required label: version"
-  
-  log_message "INFO" "✅ Image has all required labels"
-}
+log_message "INFO" "Testing image labels"
+log_message "INFO" "Checking labels for image: $IMAGE_NAME"
 
-# Run all tests
-run_tests() {
-  log_message "INFO" "Running image layer validation tests"
-  
-  # Run tests
-  test_image_layers
-  test_image_size
-  test_image_labels
-  
-  # Print test summary
-  print_test_summary
-}
+# Check for required labels using a more robust approach
+MAINTAINER_LABEL=$(docker image inspect "$IMAGE_NAME" --format='{{index .Config.Labels "maintainer"}}' 2>/dev/null || echo "")
+VERSION_LABEL=$(docker image inspect "$IMAGE_NAME" --format='{{index .Config.Labels "version"}}' 2>/dev/null || echo "")
 
-# Run tests
-run_tests
+# Check if labels exist
+if [ -z "$MAINTAINER_LABEL" ]; then
+  log_message "ERROR" "Image missing required label: maintainer"
+  assert_equals "1" "0" "Image missing required label: maintainer"
+else
+  log_message "INFO" "Found maintainer label: $MAINTAINER_LABEL"
+  assert_equals "1" "1" "Image has maintainer label: $MAINTAINER_LABEL"
+fi
+
+if [ -z "$VERSION_LABEL" ]; then
+  log_message "ERROR" "Image missing required label: version"
+  assert_equals "1" "0" "Image missing required label: version"
+else
+  log_message "INFO" "Found version label: $VERSION_LABEL"
+  assert_equals "1" "1" "Image has version label: $VERSION_LABEL"
+fi
+
+log_message "INFO" "✅ Image has all required labels"
+
+# Print test summary
+print_test_summary
+exit $?

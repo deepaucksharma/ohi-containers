@@ -4,7 +4,7 @@ REM This calls the platform-independent test runner script
 
 REM Get the directory of this script
 SET SCRIPT_DIR=%~dp0
-SET PROJECT_ROOT=%SCRIPT_DIR%
+SET PROJECT_ROOT=%SCRIPT_DIR%\..\..
 
 REM Find a suitable shell
 SET SHELL=bash.exe
@@ -33,7 +33,7 @@ REM Forward all arguments to the unified test runner
 echo Using shell: %SHELL%
 echo Running test runner with arguments: %*
 cd /d "%PROJECT_ROOT%"
-%SHELL% bin/unified/test-runner.sh %*
+%SHELL% testing/bin/unified/test-runner.sh %*
 
 REM Return the exit code from the test runner
 exit /b %ERRORLEVEL%

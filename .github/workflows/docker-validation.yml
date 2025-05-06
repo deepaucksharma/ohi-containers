@@ -33,15 +33,15 @@ jobs:
         
       - name: Set up test environment
         run: |
-          chmod +x bin/*.sh lib/*.sh tests/unit/*.sh tests/image_validation/*.sh bin/unified/*.sh
+          chmod +x testing/bin/*.sh testing/lib/*.sh testing/tests/unit/*.sh testing/tests/image_validation/*.sh testing/bin/unified/*.sh
           
       - name: Run unit tests
         run: |
-          docker run --rm -v ${{ github.workspace }}:/app alpine:latest sh -c "cd /app && chmod +x /app/lib/*.sh /app/tests/unit/*.sh && /app/tests/unit/environment_test.sh"
+          docker run --rm -v ${{ github.workspace }}:/app alpine:latest sh -c "cd /app && chmod +x /app/testing/lib/*.sh /app/testing/tests/unit/*.sh && /app/testing/tests/unit/environment_test.sh"
         
       - name: Run image validation tests
         run: |
-          docker run --rm -v ${{ github.workspace }}:/app -v /var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && chmod +x /app/lib/*.sh /app/tests/image_validation/*.sh && /app/tests/image_validation/layer_test.sh"
+          docker run --rm -v ${{ github.workspace }}:/app -v /var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && chmod +x /app/testing/lib/*.sh /app/testing/tests/image_validation/*.sh && /app/testing/tests/image_validation/layer_test.sh"
       
       - name: Run integration tests
         run: |
@@ -52,8 +52,8 @@ jobs:
           
       - name: Run unified tests
         run: |
-          chmod +x bin/unified/test-runner.sh
-          ./bin/unified/test-runner.sh --verbose
+          chmod +x testing/bin/unified/test-runner.sh
+          ./testing/runners/test.sh --verbose
           
   windows-tests:
     name: Run Tests on Windows
@@ -72,21 +72,21 @@ jobs:
       - name: Set file permissions
         shell: bash
         run: |
-          chmod +x bin/*.sh lib/*.sh tests/unit/*.sh tests/image_validation/*.sh bin/unified/*.sh
+          chmod +x testing/bin/*.sh testing/lib/*.sh testing/tests/unit/*.sh testing/tests/image_validation/*.sh testing/bin/unified/*.sh
       
       - name: Run unit tests in Docker
         shell: bash
         run: |
-          docker run --rm -v "$(pwd):/app" alpine:latest sh -c "cd /app && chmod +x /app/lib/*.sh /app/tests/unit/*.sh && /app/tests/unit/environment_test.sh"
+          docker run --rm -v "$(pwd):/app" alpine:latest sh -c "cd /app && chmod +x /app/testing/lib/*.sh /app/testing/tests/unit/*.sh && /app/testing/tests/unit/environment_test.sh"
     
       - name: Run image validation tests in Docker
         shell: bash
         run: |
-          docker run --rm -v "$(pwd):/app" -v //var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && chmod +x /app/lib/*.sh /app/tests/image_validation/*.sh && /app/tests/image_validation/layer_test.sh"
+          docker run --rm -v "$(pwd):/app" -v //var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && chmod +x /app/testing/lib/*.sh /app/testing/tests/image_validation/*.sh && /app/testing/tests/image_validation/layer_test.sh"
           
       - name: Run unified tests
         shell: bash
         run: |
           echo "Running tests with unified test runner"
-          chmod +x ./bin/unified/test-runner.sh
-          ./bin/unified/test-runner.sh --verbose
+          chmod +x ./testing/bin/unified/test-runner.sh
+          ./testing/runners/test.sh --verbose

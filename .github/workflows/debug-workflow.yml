@@ -66,31 +66,31 @@ jobs:
           find . -type f -name "*.sh" | sort
           
           echo "Checking file permissions"
-          ls -la ./bin/
-          ls -la ./lib/
-          ls -la ./tests/unit/
+          ls -la ./testing/bin/
+          ls -la ./testing/lib/
+          ls -la ./testing/tests/unit/
           
           echo "Directory structure"
           find . -type d | sort
       
       - name: Fix Permissions
         run: |
-          chmod +x ./bin/*.sh
-          chmod +x ./lib/*.sh
-          chmod +x ./tests/*/*.sh
-          chmod +x ./bin/unified/*.sh
+          chmod +x ./testing/bin/*.sh
+          chmod +x ./testing/lib/*.sh
+          chmod +x ./testing/tests/*/*.sh
+          chmod +x ./testing/bin/unified/*.sh
       
       - name: Run Unit Tests
         if: ${{ inputs.test_category == 'unit' || inputs.test_category == 'all' }}
         run: |
           echo "Running unit tests in Docker container"
-          docker run --rm -v ${{ github.workspace }}:/app alpine:latest sh -c "cd /app && ls -la && chmod +x /app/lib/*.sh /app/tests/unit/*.sh && /app/tests/unit/environment_test.sh"
+          docker run --rm -v ${{ github.workspace }}:/app alpine:latest sh -c "cd /app && ls -la && chmod +x /app/testing/lib/*.sh /app/testing/tests/unit/*.sh && /app/testing/tests/unit/environment_test.sh"
       
       - name: Run Image Validation Tests
         if: ${{ inputs.test_category == 'image' || inputs.test_category == 'all' }}
         run: |
           echo "Running image validation tests in Docker container"
-          docker run --rm -v ${{ github.workspace }}:/app -v /var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && chmod +x /app/lib/*.sh /app/tests/image_validation/*.sh && /app/tests/image_validation/layer_test.sh"
+          docker run --rm -v ${{ github.workspace }}:/app -v /var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && chmod +x /app/testing/lib/*.sh /app/testing/tests/image_validation/*.sh && /app/testing/tests/image_validation/layer_test.sh"
       
       - name: Run Integration Tests
         if: ${{ inputs.test_category == 'integration' || inputs.test_category == 'all' }}
@@ -105,8 +105,9 @@ jobs:
         if: ${{ inputs.test_category == 'all' }}
         run: |
           echo "Running tests with unified test runner"
-          chmod +x ./bin/unified/test-runner.sh
-          ./bin/unified/test-runner.sh --verbose
+          chmod +x ./testing/bin/unified/test-runner.sh
+          chmod +x ./testing/runners/test.sh
+          ./testing/runners/test.sh --verbose
   
   debug-windows:
     name: Debug Tests on Windows
@@ -137,9 +138,9 @@ jobs:
           find . -type f -name "*.sh" | sort
           
           echo "Checking file permissions"
-          ls -la ./bin/
-          ls -la ./lib/
-          ls -la ./tests/unit/
+          ls -la ./testing/bin/
+          ls -la ./testing/lib/
+          ls -la ./testing/tests/unit/
           
           echo "Directory structure"
           find . -type d | sort
@@ -147,29 +148,30 @@ jobs:
       - name: Fix Permissions
         shell: bash
         run: |
-          chmod +x ./bin/*.sh
-          chmod +x ./lib/*.sh
-          chmod +x ./tests/*/*.sh
-          chmod +x ./bin/unified/*.sh
+          chmod +x ./testing/bin/*.sh
+          chmod +x ./testing/lib/*.sh
+          chmod +x ./testing/tests/*/*.sh
+          chmod +x ./testing/bin/unified/*.sh
       
       - name: Run Unit Tests
         if: ${{ inputs.test_category == 'unit' || inputs.test_category == 'all' }}
         shell: bash
         run: |
           echo "Running unit tests in Docker container"
-          docker run --rm -v "${{ github.workspace }}:/app" alpine:latest sh -c "cd /app && ls -la && chmod +x /app/lib/*.sh /app/tests/unit/*.sh && /app/tests/unit/environment_test.sh"
+          docker run --rm -v "${{ github.workspace }}:/app" alpine:latest sh -c "cd /app && ls -la && chmod +x /app/testing/lib/*.sh /app/testing/tests/unit/*.sh && /app/testing/tests/unit/environment_test.sh"
       
       - name: Run Image Validation Tests
         if: ${{ inputs.test_category == 'image' || inputs.test_category == 'all' }}
         shell: bash
         run: |
           echo "Running image validation tests in Docker container"
-          docker run --rm -v "${{ github.workspace }}:/app" -v //var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && chmod +x /app/lib/*.sh /app/tests/image_validation/*.sh && /app/tests/image_validation/layer_test.sh"
+          docker run --rm -v "${{ github.workspace }}:/app" -v //var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && chmod +x /app/testing/lib/*.sh /app/testing/tests/image_validation/*.sh && /app/testing/tests/image_validation/layer_test.sh"
           
       - name: Run Unified Tests
         if: ${{ inputs.test_category == 'all' }}
         shell: bash
         run: |
           echo "Running tests with unified test runner"
-          chmod +x ./bin/unified/test-runner.sh
-          ./bin/unified/test-runner.sh --verbose
+          chmod +x ./testing/bin/unified/test-runner.sh
+          chmod +x ./testing/runners/test.sh
+          ./testing/runners/test.sh --verbose

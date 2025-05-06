@@ -4,10 +4,11 @@
 
 # Set default values
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-LIB_DIR="$PROJECT_ROOT/lib"
-TEST_DIR="$PROJECT_ROOT/tests"
-OUTPUT_DIR="${TEST_OUTPUT_DIR:-$PROJECT_ROOT/tests/output}"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+TESTING_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+LIB_DIR="$TESTING_ROOT/lib"
+TEST_DIR="$TESTING_ROOT/tests"
+OUTPUT_DIR="${TEST_OUTPUT_DIR:-$TESTING_ROOT/output}"
 TEST_CATEGORIES="all"
 VERBOSE=0
 SKIP_SETUP=0

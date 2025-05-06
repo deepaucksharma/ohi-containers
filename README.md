@@ -10,64 +10,54 @@ This framework provides a comprehensive set of tests to validate Docker images c
 
 The codebase has been streamlined and improved in the following ways:
 
-1. **Unified Test Runner**: All test functionality is now consolidated in a single unified test runner script (`bin/unified/test-runner.sh`).
+1. **Unified Test Runner**: All test functionality is now consolidated in a single unified test runner script.
 2. **Improved Docker Configurations**: Docker Compose files now use healthchecks and environment variables for better reliability.
 3. **Enhanced Dockerfile**: Optimized Dockerfile with proper healthchecks and best practices.
 4. **Consolidated Scripts**: Reduced script duplication and simplified the test execution process.
 5. **Environment Variables**: All configuration now uses environment variables from `.env` file.
+6. **Organized Project Structure**: Cleaner separation between Docker setup and testing infrastructure.
 
-## Directory Structure
+## Project Structure
 
 ```
-docker-validation/
-├── bin/                              # Platform-independent executable scripts
-│   ├── run-tests.sh                  # Main test runner (POSIX-compliant)
-│   ├── setup-environment.sh          # Environment setup script
-│   └── cleanup-environment.sh        # Cleanup script
-├── configs/                          # Configuration templates
-│   ├── newrelic-infra.yml            # Main agent config
-│   ├── mysql-config.yml              # MySQL integration config
-│   └── postgresql-config.yml         # PostgreSQL integration config
-├── docker/                           # Docker-related files
-│   ├── Dockerfile                    # Base Dockerfile
-│   ├── docker-compose.yml            # Test environment setup
-│   └── Dockerfile.alpine             # Alternative lightweight image
-├── lib/                              # Shared libraries and utilities
-│   ├── common.sh                     # Common utility functions
-│   ├── assertions.sh                 # Test assertions
-│   └── database_utils.sh             # Database utility functions
-├── tests/                            # Test scripts organized by category
-│   ├── unit/                         # Unit tests for individual components
-│   │   ├── config_parser_test.sh     # Test config file parsing
-│   │   └── environment_test.sh       # Test environment variables
-│   ├── integration/                  # Integration tests
-│   │   ├── db_integration_test.sh    # Database integration test
-│   │   └── api_integration_test.sh   # New Relic API integration test
-│   ├── security/                     # Security tests
-│   │   ├── user_permission_test.sh   # Database user permission tests
-│   │   └── network_security_test.sh  # Network security tests
-│   ├── performance/                  # Performance tests
-│   │   ├── resource_usage_test.sh    # Resource usage tests
-│   │   └── load_test.sh              # Load testing
-│   ├── image_validation/             # Image validation tests
-│   │   ├── layer_test.sh             # Image layer tests
-│   │   └── content_test.sh           # Image content tests
-│   ├── config_validation/            # Configuration validation tests
-│   │   ├── mysql_config_test.sh      # MySQL config validation
-│   │   └── pg_config_test.sh         # PostgreSQL config validation
-│   ├── run_all_tests.sh              # Test runner for container environment
-│   └── output/                       # Test results and logs
-├── fixtures/                         # Test fixtures and data
-│   ├── mysql/                        # MySQL test data
-│   │   └── init.sql                  # MySQL initialization script
-│   ├── postgres/                     # PostgreSQL test data
-│   │   └── init.sql                  # PostgreSQL initialization script
-│   └── wiremock/                     # WireMock fixtures
-│       └── mappings/                 # API response mappings
-│           └── metrics.json          # Metrics API mapping
-├── run-tests.bat                     # Windows test runner wrapper
-├── docker-compose.yml                # Main Docker Compose file
-└── README.md                         # This documentation file
+docker/                              # Root directory
+├── .env                             # Environment variables
+├── .github/                         # GitHub workflow configurations
+├── configs/                         # Configuration templates
+│   ├── newrelic-infra.yml           # Main agent config
+│   ├── mysql-config.yml             # MySQL integration config
+│   └── postgresql-config.yml        # PostgreSQL integration config
+├── docker-compose.yml               # Main Docker Compose file
+├── Dockerfile                       # Main Dockerfile
+├── kubernetes/                      # Kubernetes configurations
+├── README.md                        # This documentation file
+├── runtests.bat                     # Windows test runner wrapper
+├── runtests.sh                      # Linux test runner wrapper
+├── scripts/                         # Operational scripts
+│   └── healthcheck.sh               # Container health check
+└── testing/                         # All testing-related code
+    ├── bin/                         # Test runner scripts
+    │   ├── cleanup-environment.sh   # Environment cleanup script
+    │   ├── setup-environment.sh     # Environment setup script
+    │   └── unified/                 # Unified test runner
+    │       └── test-runner.sh       # Core test runner implementation
+    ├── docker-compose-test.yml      # Testing-specific Docker Compose
+    ├── fixtures/                    # Test data fixtures
+    ├── lib/                         # Testing libraries
+    │   ├── assertions.sh            # Test assertions
+    │   ├── common.sh                # Common utility functions
+    │   └── database_utils.sh        # Database utility functions
+    ├── output/                      # Test output directory
+    ├── runners/                     # Test runner entry points
+    │   ├── test.bat                 # Windows test runner
+    │   └── test.sh                  # Linux test runner
+    └── tests/                       # Test scripts by category
+        ├── fixtures/                # Test fixtures
+        ├── image_validation/        # Image validation tests
+        ├── integration/             # Integration tests
+        ├── performance/             # Performance tests
+        ├── security/                # Security tests
+        └── unit/                    # Unit tests
 ```
 
 ## Getting Started
@@ -80,42 +70,30 @@ docker-validation/
 
 ### Running Tests
 
-#### Unified Test Runner (Recommended)
-
-We've simplified the testing process with a unified test runner that works across platforms:
+Use the simplified test runners from the root directory:
 
 ```bash
 # Run all tests (Windows)
-test.bat
+runtests.bat
 
 # Run all tests (Linux/macOS)
-./bin/unified/test-runner.sh
+./runtests.sh
 
 # Run specific test category
-test.bat --category integration
-./bin/unified/test-runner.sh --category integration
+runtests.bat --category integration
+./runtests.sh --category integration
 
 # Run with verbose output
-test.bat --verbose
-./bin/unified/test-runner.sh --verbose
+runtests.bat --verbose
+./runtests.sh --verbose
 
 # Skip environment setup/cleanup
-test.bat --skip-setup --skip-cleanup
-./bin/unified/test-runner.sh --skip-setup --skip-cleanup
+runtests.bat --skip-setup --skip-cleanup
+./runtests.sh --skip-setup --skip-cleanup
 
 # Specify custom output directory
-test.bat --output ./custom/path
-./bin/unified/test-runner.sh --output ./custom/path
-```
-
-#### Legacy Runners (For Backward Compatibility)
-
-```bash
-# Linux/macOS
-./bin/run-tests.sh [options]
-
-# Windows
-run-tests.bat [options]
+runtests.bat --output ./custom/path
+./runtests.sh --output ./custom/path
 ```
 
 ### Test Categories
@@ -131,9 +109,9 @@ run-tests.bat [options]
 
 To add a new test:
 
-1. Create a new test script in the appropriate category directory
-2. Use common utility functions from `lib/common.sh`
-3. Use assertion functions from `lib/assertions.sh`
+1. Create a new test script in the appropriate category directory under `testing/tests/`
+2. Use common utility functions from `testing/lib/common.sh`
+3. Use assertion functions from `testing/lib/assertions.sh`
 4. Make sure your test script returns 0 on success and non-zero on failure
 
 Example test structure:
@@ -145,11 +123,12 @@ Example test structure:
 
 # Determine script location regardless of platform
 script_dir=$(dirname "$0")
-project_root=$(cd "$script_dir/../.." && pwd)
+project_root=$(cd "$script_dir/../../.." && pwd)
+testing_root=$(cd "$script_dir/../.." && pwd)
 
 # Source test utilities
-. "$project_root/lib/common.sh"
-. "$project_root/lib/assertions.sh"
+. "$testing_root/lib/common.sh"
+. "$testing_root/lib/assertions.sh"
 
 # Test functions
 test_something() {
@@ -178,7 +157,6 @@ The framework is designed to run on both Windows and Linux with the same code:
 - Path handling is normalized between platforms
 - Docker commands are executed with platform-specific wrappers
 - File operations use platform-independent abstractions
-- Windows users can run tests via `run-tests.bat` which delegates to shell scripts
 
 ## Contact
 

@@ -1,0 +1,23 @@
+---
+integrations:
+  - name: nri-mysql
+    interval: 15s
+    exec:
+      - /var/db/newrelic-infra/newrelic-integrations/bin/nri-mysql
+    config:
+      hostname: ${MYSQL_HOST}
+      port: ${MYSQL_PORT}
+      username: ${MYSQL_USER}
+      password: ${MYSQL_PASSWORD}
+      remote_monitoring: true
+      extended_metrics: true
+      extended_innodb_metrics: true
+      extended_myisam_metrics: true
+      enable_query_monitoring: true
+      query_monitoring_response_time_threshold: 500
+      query_monitoring_fetch_interval: 15
+    inventory_source: config/mysql
+    labels:
+      env: test
+      database_type: mysql
+      test_run: ${TEST_RUN_ID:-default}

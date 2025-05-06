@@ -1,0 +1,151 @@
+name: Debug Docker Validation Framework
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_category:
+        description: 'Test category to run'
+        required: true
+        default: 'unit'
+        type: choice
+        options:
+          - unit
+          - image
+          - integration
+          - security
+          - performance
+          - all
+      debug_mode:
+        description: 'Enable debug mode'
+        required: false
+        default: false
+        type: boolean
+      platform:
+        description: 'Test platform'
+        required: true
+        default: 'linux'
+        type: choice
+        options:
+          - linux
+          - windows
+          - both
+
+jobs:
+  debug-linux:
+    name: Debug Tests on Linux
+    runs-on: ubuntu-latest
+    if: ${{ inputs.platform == 'linux' || inputs.platform == 'both' }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+        
+      - name: Environment Information
+        run: |
+          echo "Running on Linux"
+          uname -a
+          docker --version
+          docker-compose --version
+          ls -la ${{ github.workspace }}/docker
+      
+      - name: Debug Mode - List Files
+        if: ${{ inputs.debug_mode }}
+        run: |
+          echo "Debug mode enabled - Listing all files"
+          find ${{ github.workspace }}/docker -type f -name "*.sh" | sort
+          
+          echo "Checking file permissions"
+          ls -la ${{ github.workspace }}/docker/bin/
+          ls -la ${{ github.workspace }}/docker/lib/
+          ls -la ${{ github.workspace }}/docker/tests/unit/
+          
+          echo "Directory structure"
+          find ${{ github.workspace }}/docker -type d | sort
+      
+      - name: Fix Permissions
+        run: |
+          chmod +x ${{ github.workspace }}/docker/bin/*.sh
+          chmod +x ${{ github.workspace }}/docker/lib/*.sh
+          chmod +x ${{ github.workspace }}/docker/tests/*/*.sh
+      
+      - name: Run Unit Tests
+        if: ${{ inputs.test_category == 'unit' || inputs.test_category == 'all' }}
+        run: |
+          echo "Running unit tests in Docker container"
+          docker run --rm -v ${{ github.workspace }}/docker:/app alpine:latest sh -c "cd /app && ls -la && chmod +x /app/lib/*.sh /app/tests/unit/*.sh && /app/tests/unit/environment_test.sh"
+      
+      - name: Run Image Validation Tests
+        if: ${{ inputs.test_category == 'image' || inputs.test_category == 'all' }}
+        run: |
+          echo "Running image validation tests in Docker container"
+          docker run --rm -v ${{ github.workspace }}/docker:/app -v /var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && chmod +x /app/lib/*.sh /app/tests/image_validation/*.sh && /app/tests/image_validation/layer_test.sh"
+      
+      - name: Run Integration Tests
+        if: ${{ inputs.test_category == 'integration' || inputs.test_category == 'all' }}
+        run: |
+          echo "Running integration tests with Docker Compose"
+          cd ${{ github.workspace }}/docker
+          docker-compose up -d
+          docker-compose ps
+          docker-compose run test-runner
+          docker-compose down
+  
+  debug-windows:
+    name: Debug Tests on Windows
+    runs-on: windows-latest
+    if: ${{ inputs.platform == 'windows' || inputs.platform == 'both' }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+        
+      - name: Environment Information
+        shell: bash
+        run: |
+          echo "Running on Windows"
+          systeminfo | findstr /B /C:"OS Name" /C:"OS Version"
+          docker --version
+          docker-compose --version
+          ls -la ${{ github.workspace }}/docker
+      
+      - name: Debug Mode - List Files
+        if: ${{ inputs.debug_mode }}
+        shell: bash
+        run: |
+          echo "Debug mode enabled - Listing all files"
+          find ${{ github.workspace }}/docker -type f -name "*.sh" | sort
+          
+          echo "Checking file permissions"
+          ls -la ${{ github.workspace }}/docker/bin/
+          ls -la ${{ github.workspace }}/docker/lib/
+          ls -la ${{ github.workspace }}/docker/tests/unit/
+          
+          echo "Directory structure"
+          find ${{ github.workspace }}/docker -type d | sort
+      
+      - name: Fix Permissions
+        shell: bash
+        run: |
+          chmod +x ${{ github.workspace }}/docker/bin/*.sh
+          chmod +x ${{ github.workspace }}/docker/lib/*.sh
+          chmod +x ${{ github.workspace }}/docker/tests/*/*.sh
+      
+      - name: Run Unit Tests
+        if: ${{ inputs.test_category == 'unit' || inputs.test_category == 'all' }}
+        shell: bash
+        run: |
+          echo "Running unit tests in Docker container"
+          docker run --rm -v "${{ github.workspace }}/docker:/app" alpine:latest sh -c "cd /app && ls -la && chmod +x /app/lib/*.sh /app/tests/unit/*.sh && /app/tests/unit/environment_test.sh"
+      
+      - name: Run Image Validation Tests
+        if: ${{ inputs.test_category == 'image' || inputs.test_category == 'all' }}
+        shell: bash
+        run: |
+          echo "Running image validation tests in Docker container"
+          docker run --rm -v "${{ github.workspace }}/docker:/app" -v "//var/run/docker.sock:/var/run/docker.sock" alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && chmod +x /app/lib/*.sh /app/tests/image_validation/*.sh && /app/tests/image_validation/layer_test.sh"

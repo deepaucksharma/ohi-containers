@@ -1,0 +1,278 @@
+name: Complete Docker Validation Tests
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'docker/**'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'docker/**'
+  schedule:
+    - cron: '0 0 * * 1'  # Run weekly on Mondays
+  workflow_dispatch:  # Allow manual triggering
+
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+          
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+        
+      - name: Run unit tests
+        id: unit_tests
+        run: |
+          cd docker
+          mkdir -p tests/output
+          chmod +x lib/*.sh bin/*.sh tests/unit/*.sh
+          
+          # Create test results output directory with proper permissions
+          timestamp=$(date +%Y%m%d%H%M%S)
+          mkdir -p tests/output/$timestamp
+          
+          # Run each unit test and collect results
+          echo "::group::Environment Test"
+          docker run --rm -v ${{ github.workspace }}/docker:/app alpine:latest sh -c "cd /app && /app/tests/unit/environment_test.sh | tee /app/tests/output/$timestamp/environment_test.log"
+          environment_exit=$?
+          echo "::endgroup::"
+          
+          echo "::group::Config Parser Test"
+          docker run --rm -v ${{ github.workspace }}/docker:/app alpine:latest sh -c "cd /app && /app/tests/unit/config_parser_test.sh | tee /app/tests/output/$timestamp/config_parser_test.log"
+          config_exit=$?
+          echo "::endgroup::"
+          
+          # Report test results
+          if [ $environment_exit -eq 0 ] && [ $config_exit -eq 0 ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "✅ All unit tests passed!"
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "❌ Some unit tests failed"
+            exit 1
+          fi
+        
+      - name: Upload unit test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: unit-test-logs
+          path: docker/tests/output/
+          retention-days: 7
+  
+  image-tests:
+    name: Image Validation Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+        
+      - name: Run image validation tests
+        id: image_tests
+        run: |
+          cd docker
+          mkdir -p tests/output
+          chmod +x lib/*.sh bin/*.sh tests/image_validation/*.sh
+          
+          # Create test results output directory
+          timestamp=$(date +%Y%m%d%H%M%S)
+          mkdir -p tests/output/$timestamp
+          
+          # Run image layer test
+          echo "::group::Layer Test"
+          docker run --rm -v ${{ github.workspace }}/docker:/app -v /var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && /app/tests/image_validation/layer_test.sh | tee /app/tests/output/$timestamp/layer_test.log"
+          layer_exit=$?
+          echo "::endgroup::"
+          
+          # Run image content test
+          echo "::group::Content Test"
+          docker run --rm -v ${{ github.workspace }}/docker:/app -v /var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && /app/tests/image_validation/content_test.sh | tee /app/tests/output/$timestamp/content_test.log"
+          content_exit=$?
+          echo "::endgroup::"
+          
+          # Report test results
+          if [ $layer_exit -eq 0 ] && [ $content_exit -eq 0 ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "✅ All image validation tests passed!"
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "❌ Some image validation tests failed"
+            exit 1
+          fi
+        
+      - name: Upload image validation test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: image-test-logs
+          path: docker/tests/output/
+          retention-days: 7
+  
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [unit-tests, image-tests]
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Set up Docker Compose
+        run: |
+          docker-compose --version
+          
+      - name: Run integration tests
+        id: integration_tests
+        run: |
+          cd docker
+          mkdir -p tests/output
+          chmod +x lib/*.sh bin/*.sh tests/integration/*.sh
+          
+          # Start Docker Compose environment
+          docker-compose up -d
+          
+          # Wait for services to be available
+          echo "Waiting for services to be ready..."
+          sleep 30
+          
+          # Run test runner container
+          docker-compose run --rm test-runner
+          test_exit=$?
+          
+          # Clean up environment
+          docker-compose down
+          
+          # Report test results
+          if [ $test_exit -eq 0 ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "✅ All integration tests passed!"
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "❌ Some integration tests failed"
+            exit 1
+          fi
+        
+      - name: Upload integration test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: integration-test-logs
+          path: docker/tests/output/
+          retention-days: 7
+  
+  windows-compatibility:
+    name: Windows Compatibility Tests
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Run unit tests on Windows
+        shell: bash
+        run: |
+          cd docker
+          mkdir -p tests/output
+          chmod +x lib/*.sh bin/*.sh tests/unit/*.sh
+          
+          # Create test results output directory
+          timestamp=$(date +%Y%m%d%H%M%S)
+          mkdir -p tests/output/$timestamp
+          
+          # Run tests in Docker container
+          docker run --rm -v "$(pwd):/app" alpine:latest sh -c "cd /app && /app/tests/unit/environment_test.sh | tee /app/tests/output/$timestamp/windows_environment_test.log"
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Windows compatibility test passed!"
+          else
+            echo "❌ Windows compatibility test failed"
+            exit 1
+          fi
+      
+      - name: Upload Windows test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-test-logs
+          path: docker/tests/output/
+          retention-days: 7
+  
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [unit-tests, image-tests, integration-tests, windows-compatibility]
+    if: always()
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Download all workflow run artifacts
+        uses: actions/download-artifact@v3
+        
+      - name: Generate Test Summary
+        run: |
+          echo "# Docker Validation Framework Test Results" > summary.md
+          echo "" >> summary.md
+          echo "## Unit Tests" >> summary.md
+          if [ "${{ needs.unit-tests.result }}" == "success" ]; then
+            echo "✅ All unit tests passed" >> summary.md
+          else
+            echo "❌ Unit tests failed" >> summary.md
+          fi
+          echo "" >> summary.md
+          
+          echo "## Image Validation Tests" >> summary.md
+          if [ "${{ needs.image-tests.result }}" == "success" ]; then
+            echo "✅ All image validation tests passed" >> summary.md
+          else
+            echo "❌ Image validation tests failed" >> summary.md
+          fi
+          echo "" >> summary.md
+          
+          echo "## Integration Tests" >> summary.md
+          if [ "${{ needs.integration-tests.result }}" == "success" ]; then
+            echo "✅ All integration tests passed" >> summary.md
+          else
+            echo "❌ Integration tests failed" >> summary.md
+          fi
+          echo "" >> summary.md
+          
+          echo "## Windows Compatibility" >> summary.md
+          if [ "${{ needs.windows-compatibility.result }}" == "success" ]; then
+            echo "✅ Windows compatibility tests passed" >> summary.md
+          else
+            echo "❌ Windows compatibility tests failed" >> summary.md
+          fi
+          echo "" >> summary.md
+          
+          echo "## Overall Status" >> summary.md
+          if [ "${{ needs.unit-tests.result }}" == "success" ] && [ "${{ needs.image-tests.result }}" == "success" ] && [ "${{ needs.integration-tests.result }}" == "success" ] && [ "${{ needs.windows-compatibility.result }}" == "success" ]; then
+            echo "✅ All tests passed successfully!" >> summary.md
+          else
+            echo "❌ Some tests failed" >> summary.md
+          fi
+      
+      - name: Upload Test Summary
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-summary
+          path: summary.md
+          retention-days: 30

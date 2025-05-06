@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  test-runner:
+    image: alpine:latest
+    container_name: newrelic-test-runner
+    volumes:
+      - ./:/app
+      - ./tests/output:/app/tests/output
+    working_dir: /app
+    environment:
+      - PROJECT_ROOT=/app
+      - LIB_PATH=/app/lib
+    command: >
+      sh -c "
+        echo '== Starting New Relic Docker Tests =='
+        
+        # Install required packages
+        apk add --no-cache docker-cli bash
+        
+        # Create output directory
+        mkdir -p /app/tests/output
+        
+        # Make scripts executable
+        chmod +x /app/lib/*.sh /app/tests/unit/*.sh /app/tests/image_validation/*.sh
+        
+        # Create setup script
+        cat > /app/setup_tests.sh << 'EOF'
+        #!/bin/bash
+        # Fix paths in test scripts
+        find /app/tests -name '*.sh' -type f -exec sed -i 's#\. \"\$$project_root/lib/#\. \"/app/lib/#g' {} \\;
+        EOF
+        
+        # Make setup script executable and run it
+        chmod +x /app/setup_tests.sh
+        /app/setup_tests.sh
+        
+        # Run tests
+        echo 'Running unit tests...'
+        find /app/tests/unit -name '*_test.sh' -type f -exec sh -c 'echo "# Running $0"; $0' {} \\;
+        
+        echo 'Running image validation tests...'
+        find /app/tests/image_validation -name '*_test.sh' -type f -exec sh -c 'echo "# Running $0"; $0' {} \\;
+      "

@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  # MySQL database for testing
+  mysql:
+    image: mysql:8.0
+    container_name: test-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-test}
+      MYSQL_USER: ${MYSQL_USER:-newrelic}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-test_password}
+    volumes:
+      - ./tests/fixtures/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    command: >
+      --performance-schema=ON
+      --table_definition_cache=400
+      --table_open_cache=300
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # PostgreSQL database for testing
+  postgres:
+    image: postgres:14
+    container_name: test-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    volumes:
+      - ./tests/fixtures/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    command: >
+      -c shared_preload_libraries=pg_stat_statements
+      -c pg_stat_statements.max=10000
+      -c pg_stat_statements.track=all
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Mock New Relic backend for testing
+  mockbackend:
+    image: wiremock/wiremock:2.35.0
+    container_name: mock-newrelic
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./tests/fixtures/wiremock:/home/wiremock:ro
+    command: --verbose --global-response-templating
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:8080/__admin/mappings"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # New Relic Infrastructure Agent (under test)
+  newrelic-infra:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: test-newrelic-infra
+    depends_on:
+      mysql:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      mockbackend:
+        condition: service_healthy
+    environment:
+      NRIA_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-0123456789012345678901234567890123456789}
+      NEW_RELIC_API_URL: "http://mockbackend:8080/v1"
+      MYSQL_HOST: "mysql"
+      MYSQL_PORT: "3306"
+      MYSQL_USER: ${MYSQL_USER:-newrelic}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-test_password}
+      POSTGRES_HOST: "postgres"
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-newrelic}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-test_password}
+    volumes:
+      - ./configs/newrelic-infra.yml.template:/etc/newrelic-infra.yml:ro
+      - ./configs/:/etc/newrelic-infra/integrations.d:ro
+      - ./tests/output:/var/log/test-results
+    command: ["--config", "/etc/newrelic-infra.yml", "--verbose", "1"]
+    # Let Docker use the HEALTHCHECK from the Dockerfile
+
+  # Test runner
+  test-runner:
+    image: alpine:3.18
+    container_name: test-runner
+    depends_on:
+      newrelic-infra:
+        condition: service_healthy
+    volumes:
+      - ./tests:/tests:ro
+      - ./lib:/lib:ro
+      - ./tests/output:/output
+    command: sh -c "cd /tests && ./run_all_tests.sh"

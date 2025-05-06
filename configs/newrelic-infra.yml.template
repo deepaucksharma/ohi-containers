@@ -1,0 +1,37 @@
+---
+# Main New Relic Infrastructure agent configuration
+license_key: ${NEW_RELIC_LICENSE_KEY}
+
+# Proxy configuration (optional)
+# proxy: https://proxy.example.com:8080
+
+# Staging or production environment
+staging: true
+
+# Collecting metrics about the agent itself
+metrics:
+  system_sample_rate: 30s
+  storage_sample_rate: 30s
+  network_sample_rate: 30s
+  process_sample_rate: 30s
+
+# Logging configuration
+log:
+  level: info
+  file: /var/log/newrelic-infra/newrelic-infra.log
+
+# Custom attributes applied to all data from this agent
+custom_attributes:
+  environment: test
+  service: database-monitoring
+  team: platform-engineering
+  test_run_id: ${TEST_RUN_ID:-default}
+
+# Connection settings
+http_server_host: 0.0.0.0
+http_server_port: 8001
+display_name: test-container-agent
+
+# Determines if the agent reports its hostname to NR
+# For remoteEntities, this should be false for best identifier consistency
+ignore_system_proxy: true

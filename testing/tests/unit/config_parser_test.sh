@@ -2,40 +2,9 @@
 # Unit tests for configuration parsing
 # Version: 1.0.0
 
-# Determine script location regardless of platform
-script_dir=$(dirname "$0")
-testing_root=$(cd "$script_dir/../.." && pwd)
-
-# Source test utilities
-if [ -f "$testing_root/lib/common.sh" ]; then
-  . "$testing_root/lib/common.sh"
-elif [ -f "/app/testing/lib/common.sh" ]; then
-  . "/app/testing/lib/common.sh"
-else
-  echo "ERROR: Cannot find common.sh at $testing_root/lib/common.sh"
-  # Try alternative path for Docker environment
-  if [ -f "/workspace/testing/lib/common.sh" ]; then
-    . "/workspace/testing/lib/common.sh"
-  else
-    echo "ERROR: Cannot find common.sh at /workspace/testing/lib/common.sh either"
-    exit 1
-  fi
-fi
-
-if [ -f "$testing_root/lib/assertions.sh" ]; then
-  . "$testing_root/lib/assertions.sh"
-elif [ -f "/app/testing/lib/assertions.sh" ]; then
-  . "/app/testing/lib/assertions.sh"
-else
-  echo "ERROR: Cannot find assertions.sh at $testing_root/lib/assertions.sh"
-  # Try alternative path for Docker environment
-  if [ -f "/workspace/testing/lib/assertions.sh" ]; then
-    . "/workspace/testing/lib/assertions.sh"
-  else
-    echo "ERROR: Cannot find assertions.sh at /workspace/testing/lib/assertions.sh either"
-    exit 1
-  fi
-fi
+# Source test utilities directly from known location
+. "/app/testing/lib/common.sh"
+. "/app/testing/lib/assertions.sh"
 
 # Setup: Create a temporary config file for testing
 setup() {

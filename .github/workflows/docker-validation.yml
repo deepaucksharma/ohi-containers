@@ -37,6 +37,7 @@ jobs:
           
       - name: Run unit tests
         run: |
+          # Run tests with the correct mount path
           docker run --rm -v ${{ github.workspace }}:/app alpine:latest sh -c "cd /app && chmod +x /app/testing/lib/*.sh /app/testing/tests/unit/*.sh && /app/testing/tests/unit/environment_test.sh"
         
       - name: Run image validation tests

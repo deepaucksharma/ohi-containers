@@ -2,9 +2,8 @@
 # Test assertion functions for platform-independent testing
 # Version: 1.0.0
 
-# Source common utilities
-script_dir=$(dirname "$0")
-. "$script_dir/common.sh"
+# Source common utilities directly with absolute path
+. "/app/testing/lib/common.sh"
 
 # Colors for terminal output
 RED='\033[0;31m'

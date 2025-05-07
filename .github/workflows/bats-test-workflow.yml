@@ -1,0 +1,184 @@
+name: New Relic Infrastructure Tests
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'testing/**'
+      - 'configs/**'
+      - 'scripts/**'
+      - '.github/workflows/bats-test-workflow.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'testing/**'
+      - 'configs/**'
+      - 'scripts/**'
+      - '.github/workflows/bats-test-workflow.yml'
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+      
+      - name: Lint Shell scripts
+        run: |
+          find . -name "*.sh" -type f -print0 | xargs -0 shellcheck -S warning
+      
+      - name: Install yamllint
+        run: |
+          sudo apt-get install -y yamllint
+      
+      - name: Lint YAML files
+        run: |
+          yamllint -c .github/workflows/yamllint-config.yml .
+      
+      - name: Validate Docker Compose file
+        run: |
+          docker compose -f docker-compose.yml config
+          docker compose -f testing/docker-compose.test.yml config
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+      
+      - name: Install test dependencies
+        run: |
+          # Make scripts executable
+          find . -name "*.sh" -type f -exec chmod +x {} \;
+          find ./testing -name "*.bats" -type f -exec chmod +x {} \;
+          
+          # Install Bats and dependencies
+          cd testing
+          ./scripts/bootstrap_bats.sh
+      
+      - name: Run unit tests
+        run: |
+          cd testing
+          ./.bats/bats specs/unit
+      
+      - name: Build Docker image for testing
+        run: |
+          docker build -t newrelic-infra:latest .
+      
+      - name: Start test environment
+        run: |
+          cd testing
+          export NEW_RELIC_LICENSE_KEY=dummy012345678901234567890123456789
+          docker compose -f docker-compose.test.yml up -d
+          
+          # Wait for containers to be healthy
+          echo "Waiting for containers to be healthy..."
+          timeout 300 bash -c 'until docker ps | grep -q "(healthy)"; do sleep 5; done'
+      
+      - name: Run integration tests
+        run: |
+          cd testing
+          ./.bats/bats specs/integration
+      
+      - name: Run end-to-end tests
+        run: |
+          cd testing
+          ./.bats/bats specs/e2e
+      
+      - name: Run security tests
+        run: |
+          cd testing
+          ./.bats/bats specs/security
+      
+      - name: Run performance tests
+        run: |
+          cd testing
+          mkdir -p artifacts
+          ./.bats/bats specs/perf
+      
+      - name: Generate performance report
+        run: |
+          # Install Python dependencies for plotting
+          sudo apt-get update
+          sudo apt-get install -y python3-pip
+          pip3 install pandas matplotlib
+          
+          # Generate performance charts and report
+          python3 testing/scripts/plot_perf.py testing/artifacts/perf_results.csv testing/artifacts
+      
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-artifacts
+          path: |
+            testing/artifacts/**
+      
+      - name: Cleanup
+        if: always()
+        run: |
+          cd testing
+          docker compose -f docker-compose.test.yml down -v
+      
+      - name: Create test report
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: testing/.bats/report.xml
+          check_name: "Test Results"
+          comment_mode: always
+
+  security-scan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Build Docker image
+        run: |
+          docker build -t newrelic-infra:latest .
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'newrelic-infra:latest'
+          format: 'table'
+          exit-code: '1'  # Fail on CRITICAL and HIGH vulnerabilities
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'

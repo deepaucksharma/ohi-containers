@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   # MySQL database for testing
   mysql:
@@ -12,8 +14,8 @@ services:
       MYSQL_USER: ${MYSQL_USER:-newrelic}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-test_password}
     volumes:
-      - ./testing/tests/fixtures/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-      - ./testing/tests/fixtures/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      - ../testing/fixtures/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ../testing/fixtures/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
     command: >
       --performance-schema=ON
       --table_definition_cache=400
@@ -39,8 +41,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
     volumes:
-      - ./testing/tests/fixtures/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-      - ./testing/tests/fixtures/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ../testing/fixtures/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ../testing/fixtures/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
     command: >
       -c shared_preload_libraries=pg_stat_statements
       -c pg_stat_statements.max=10000
@@ -61,7 +63,7 @@ services:
     networks:
       - backend
     volumes:
-      - ./testing/tests/fixtures/wiremock:/home/wiremock:ro
+      - ../testing/fixtures/wiremock:/home/wiremock:ro
     command: --verbose --global-response-templating
     healthcheck:
       test: ["CMD", "wget", "--spider", "http://localhost:8080/__admin/mappings"]
@@ -72,7 +74,7 @@ services:
   # New Relic Infrastructure Agent (under test)
   newrelic-infra:
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile
     container_name: test-newrelic-infra
     networks:
@@ -105,18 +107,18 @@ services:
       NRIA_METRICS_NETWORK_SAMPLE_RATE: "15"
       NRIA_METRICS_PROCESS_SAMPLE_RATE: "15"
     volumes:
-      - ./configs/newrelic-infra.yml.template:/etc/newrelic-infra.yml.template:ro
-      - ./configs/:/etc/newrelic-infra/integrations.d:ro
-      - ./testing/output:/var/log/test-results
-      - ./testing/output:/var/log/newrelic-infra
-      # Mount log directory as tmpfs to avoid excessive disk usage
+      - ../configs/newrelic-infra.yml.template:/etc/newrelic-infra.yml.template:ro
+      - ../configs/:/etc/newrelic-infra/integrations.d:ro
+      - ../testing/artifacts:/var/log/test-results
       - type: tmpfs
         target: /var/log/newrelic-infra
-        tmpfs: 
+        tmpfs:
           size: 100m
+          uid: 1000
+          gid: 1000
     # Let Docker use the HEALTHCHECK from the Dockerfile
 
-  # Test runner
+  # Test runner for manual tests
   test-runner:
     image: alpine:3.18
     container_name: test-runner
@@ -126,15 +128,13 @@ services:
       newrelic-infra:
         condition: service_healthy
     volumes:
-      - ./testing:/testing:ro
-      - ./testing/output:/output
-    command: sh -c "cd /testing && ./tests/run_all_tests.sh"
+      - ..:/app:ro
+      - ../testing/artifacts:/output
+    working_dir: /app
+    command: ["sh", "-c", "echo 'Test environment ready! Run tests with: make test'"]
 
 # Define networks
 networks:
   # Internal network for communication between services
-  # Note: 'internal: true' is great for testing but prevents the agent from reaching
-  # New Relic endpoints in production. Use docker-compose.prod.yml for production deployments.
   backend:
     driver: bridge
-    internal: true

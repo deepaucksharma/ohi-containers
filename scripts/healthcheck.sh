@@ -5,18 +5,9 @@
 set -e
 
 # Check if the New Relic agent process is running
-# Try pgrep first, fall back to ps if not available
-if command -v pgrep > /dev/null 2>&1; then
-  if ! pgrep newrelic-infra > /dev/null 2>&1; then
-    echo "ERROR: New Relic Infrastructure agent process is not running"
-    exit 1
-  fi
-else
-  # Fall back to ps if pgrep is not available
-  if ! ps -ef | grep -q "[n]ewrelic-infra"; then
-    echo "ERROR: New Relic Infrastructure agent process is not running"
-    exit 1
-  fi
+if ! pgrep newrelic-infra > /dev/null 2>&1; then
+  echo "ERROR: New Relic Infrastructure agent process is not running"
+  exit 1
 fi
 
 # Check if log directory exists and is writable

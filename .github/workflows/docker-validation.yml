@@ -1,28 +1,20 @@
-name: Docker Validation Tests
+name: Docker Validation Tests (Quick Smoke Test)
 
 on:
   push:
     branches: [ main, master ]
     paths:
       - 'Dockerfile'
-      - 'docker-compose.yml'
-      - 'configs/**'
-      - 'scripts/**'
-      - 'testing/**'
-      - '.github/workflows/**'
+      - '.github/workflows/docker-validation.yml'
   pull_request:
     branches: [ main, master ]
     paths:
       - 'Dockerfile'
-      - 'docker-compose.yml'
-      - 'configs/**'
-      - 'scripts/**'
-      - 'testing/**'
-      - '.github/workflows/**'
+      - '.github/workflows/docker-validation.yml'
   workflow_dispatch:
 
 jobs:
-  validate-docker-image:
+  smoke-test:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -35,78 +27,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2.9.1
       
-      - name: Cache Docker layers
-        uses: actions/cache@v3.3.1
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
-      
-      - name: Debug Environment
-        run: |
-          docker version
-          docker compose version
-          ls -la
-          pwd
-      
-      - name: Make scripts executable
-        run: |
-          find . -name "*.sh" -exec chmod +x {} \;
-      
-      - name: Create output directory
-        run: mkdir -p testing/output
-      
-      - name: Build Docker image first
+      - name: Build Docker image (Smoke Test)
         run: |
           docker build -t newrelic-infra:latest .
           docker images
       
-      - name: Run image validation tests
-        run: ./testing/tests/image_validation/layer_test.sh
-      
-      - name: Start the environment with Docker Compose v2
-        env:
-          NEW_RELIC_LICENSE_KEY: dummy012345678901234567890123456789
+      - name: Run basic image validation test
         run: |
-          docker compose -f docker-compose.yml up -d --build
-      
-      - name: Wait for containers to be ready
-        run: |
-          echo "Waiting for containers to be healthy..."
-          timeout 300 bash -c 'until docker ps | grep -q "(healthy)"; do sleep 5; done'
-      
-      - name: Run integration tests
-        run: |
-          docker ps
-          if [ "$(docker ps -q -f name=test-runner)" ]; then
-            docker exec test-runner sh -c "/testing/tests/run_all_tests.sh"
-          else
-            echo "test-runner container not found, running tests directly"
-            docker run --rm \
-              --network backend \
-              -v $(pwd)/testing:/testing \
-              -v $(pwd)/testing/output:/output \
-              alpine:3.18 sh -c "cd /testing && ./tests/run_all_tests.sh"
-          fi
-      
-      - name: Collect logs
-        if: always()
-        run: |
-          mkdir -p logs
-          for container in $(docker ps -aq); do
-            name=$(docker inspect --format='{{.Name}}' $container | sed 's/\///')
-            echo "Collecting logs for $name"
-            docker logs $container > logs/$name.log 2>&1 || true
-          done
-      
-      - name: Upload logs
-        if: always()
-        uses: actions/upload-artifact@v3.1.3
-        with:
-          name: test-logs-linux
-          path: logs/
-      
-      - name: Clean up
-        if: always()
-        run: docker compose down -v
+          chmod +x testing/tests/image_validation/layer_test.sh
+          ./testing/tests/image_validation/layer_test.sh

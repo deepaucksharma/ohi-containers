@@ -114,6 +114,8 @@ services:
         target: /var/log/newrelic-infra
         tmpfs:
           size: 100m
+          uid: 1000
+          gid: 1000
     # Let Docker use the HEALTHCHECK from the Dockerfile
 
   # Test runner
@@ -133,6 +135,8 @@ services:
 # Define networks
 networks:
   # Internal network for communication between services
+  # Note: 'internal: true' is great for testing but prevents the agent from reaching
+  # New Relic endpoints in production. Use docker-compose.prod.yml for production deployments.
   backend:
     driver: bridge
     internal: true

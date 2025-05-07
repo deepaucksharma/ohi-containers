@@ -1,4 +1,4 @@
-FROM newrelic/infrastructure:latest
+FROM newrelic/infrastructure-bundle:latest
 
 # Set metadata labels
 LABEL maintainer="platform-eng@example.com" \
@@ -6,11 +6,12 @@ LABEL maintainer="platform-eng@example.com" \
       description="New Relic Infrastructure with DB Monitoring Integrations"
 
 # Install additional dependencies
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     curl \
-    gettext \
+    gettext-base \
     jq \
-    procps
+    procps \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy configuration files
 COPY configs/ /etc/newrelic-infra/integrations.d/

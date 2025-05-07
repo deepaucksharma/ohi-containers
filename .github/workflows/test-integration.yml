@@ -1,132 +1,14 @@
-name: Integration Tests
+name: Integration Tests (Disabled - Use Complete Validation)
 
 on:
-  push:
-    branches: [ main, master ]
-    paths:
-      - 'testing/tests/integration/**'
-      - '.github/workflows/test-integration.yml'
-  pull_request:
-    branches: [ main, master ]
-    paths:
-      - 'testing/tests/integration/**'
-      - '.github/workflows/test-integration.yml'
-  workflow_dispatch:
+  workflow_dispatch:  # Only manual triggers, no automatic triggers
 
 jobs:
-  test-linux:
+  integration-tests-disabled:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./
-    
     steps:
-      - uses: actions/checkout@v3.5.3
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2.9.1
-      
-      - name: Make scripts executable
+      - name: Notification
         run: |
-          find . -name "*.sh" -exec chmod +x {} \;
-      
-      - name: Create output directory
-        run: mkdir -p testing/output
-      
-      - name: Build Docker image
-        run: |
-          docker build -t newrelic-infra:latest .
-          docker images
-      
-      - name: Run image validation tests
-        run: |
-          ./testing/tests/image_validation/layer_test.sh
-      
-      - name: Start the environment
-        run: |
-          export NEW_RELIC_LICENSE_KEY=dummy012345678901234567890123456789
-          ./scripts/compose-helper.sh -f docker-compose.yml up -d
-      
-      - name: Wait for containers to be ready
-        run: |
-          echo "Waiting for containers to be healthy..."
-          timeout 300 bash -c 'until docker ps | grep -q "(healthy)"; do sleep 5; done'
-      
-      - name: Run tests
-        run: |
-          docker exec test-runner sh -c "/testing/tests/run_all_tests.sh"
-      
-      - name: Collect logs
-        if: always()
-        run: |
-          mkdir -p logs
-          for container in $(docker ps -aq); do
-            name=$(docker inspect --format='{{.Name}}' $container | sed 's/\///')
-            echo "Collecting logs for $name"
-            docker logs $container > logs/$name.log 2>&1 || true
-          done
-      
-      - name: Upload logs
-        if: always()
-        uses: actions/upload-artifact@v3.1.3
-        with:
-          name: test-logs-linux
-          path: logs/
-      
-      - name: Clean up
-        if: always()
-        run: ./scripts/compose-helper.sh -f docker-compose.yml down -v
-
-  test-windows:
-    runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: ./
-        shell: bash
-    
-    steps:
-      - uses: actions/checkout@v3.5.3
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2.9.1
-      
-      - name: Build Docker image
-        run: |
-          docker build -t newrelic-infra:latest .
-          docker images
-      
-      - name: Start the environment
-        run: |
-          export NEW_RELIC_LICENSE_KEY=dummy012345678901234567890123456789
-          ./scripts/compose-helper.sh -f docker-compose.yml up -d
-      
-      - name: Wait for containers to be ready
-        run: |
-          echo "Waiting for containers to be healthy..."
-          timeout 300 bash -c 'until docker ps | grep -q "(healthy)"; do sleep 5; done'
-        shell: bash
-      
-      - name: Run tests
-        run: |
-          docker exec test-runner sh -c "/testing/tests/run_all_tests.sh"
-      
-      - name: Collect logs
-        if: always()
-        run: |
-          mkdir -p logs
-          for container in $(docker ps -aq); do
-            name=$(docker inspect --format='{{.Name}}' $container | sed 's/\///')
-            echo "Collecting logs for $name"
-            docker logs $container > logs/$name.log 2>&1 || true
-          done
-      
-      - name: Upload logs
-        if: always()
-        uses: actions/upload-artifact@v3.1.3
-        with:
-          name: test-logs-windows
-          path: logs/
-      
-      - name: Clean up
-        if: always()
-        run: ./scripts/compose-helper.sh -f docker-compose.yml down -v
+          echo "This workflow is disabled to avoid duplication."
+          echo "Please use the Complete Validation workflow instead."
+          exit 0  # Always succeed

@@ -135,10 +135,21 @@ nano .env  # or your preferred editor
 Key environment variables include:
 
 - `NEW_RELIC_LICENSE_KEY`: Your New Relic license key
-- `MYSQL_*`: MySQL connection parameters
+- `MYSQL_*`: MySQL connection parameters and metrics flags (prefixed with MYSQL_)
 - `POSTGRES_*`: PostgreSQL connection parameters
+- `PG_*`: PostgreSQL metrics flags (prefixed with PG_)
 - `NRIA_*`: New Relic Infrastructure agent settings
-- Database integration metrics toggles (set to 1 to enable, 0 to disable)
+
+### Production Deployment
+
+For production deployments, use the `docker-compose.prod.yml` file which doesn't restrict network access:
+
+```bash
+# Deploy to production
+docker compose -f docker-compose.prod.yml up -d
+```
+
+The production compose file allows the agent to connect to New Relic endpoints, while the testing compose file uses internal networking for isolation.
 
 ### Running Tests
 

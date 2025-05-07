@@ -1,0 +1,44 @@
+services:
+  # New Relic Infrastructure Agent (production deployment)
+  newrelic-infra:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: newrelic-infra
+    restart: unless-stopped
+    environment:
+      NRIA_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:?err}
+      MYSQL_HOST: ${MYSQL_HOST:-localhost}
+      MYSQL_PORT: ${MYSQL_PORT:-3306}
+      MYSQL_USER: ${MYSQL_USER:-newrelic}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-mysql}
+      POSTGRES_HOST: ${POSTGRES_HOST:-localhost}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DATABASE: ${POSTGRES_DB:-postgres}
+      # Additional environment variables for better monitoring
+      NRIA_VERBOSE: ${NRIA_VERBOSE:-0}
+      NRIA_DISPLAY_NAME: ${NRIA_DISPLAY_NAME:-Production Infrastructure}
+      NRIA_METRICS_SYSTEM_SAMPLE_RATE: ${NRIA_METRICS_SYSTEM_SAMPLE_RATE:-15}
+      NRIA_METRICS_STORAGE_SAMPLE_RATE: ${NRIA_METRICS_STORAGE_SAMPLE_RATE:-15}
+      NRIA_METRICS_NETWORK_SAMPLE_RATE: ${NRIA_METRICS_NETWORK_SAMPLE_RATE:-15}
+      NRIA_METRICS_PROCESS_SAMPLE_RATE: ${NRIA_METRICS_PROCESS_SAMPLE_RATE:-15}
+    volumes:
+      - ./configs/newrelic-infra.yml.template:/etc/newrelic-infra.yml.template:ro
+      - ./configs/:/etc/newrelic-infra/integrations.d:ro
+      # Mount log directory as tmpfs to avoid excessive disk usage
+      - type: tmpfs
+        target: /var/log/newrelic-infra
+        tmpfs:
+          size: 100m
+          uid: 1000
+          gid: 1000
+    # Let Docker use the HEALTHCHECK from the Dockerfile
+
+# Define networks
+networks:
+  # For production, we don't set internal: true so the agent can reach New Relic endpoints
+  default:
+    driver: bridge

@@ -15,7 +15,7 @@ integrations:
       METRICS: "1"
       EXTENDED_METRICS: "1"
       DEFAULT_METRICS_HIGHLIGHTS: "1"
-      ENABLE_QUERY_MONITORING: "1"  # Keep this modern flag name
+      ENABLE_QUERY_MONITORING: "1"  # Corrected flag name
       
       # Metrics collection categories
       COLLECT_METRICS_FROM_ALL_DATABASES: "1"

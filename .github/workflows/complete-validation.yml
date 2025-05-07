@@ -1,233 +1,156 @@
-name: Complete Docker Validation Tests
+name: Complete Validation
 
 on:
   push:
     branches: [ main, master ]
+    paths:
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'configs/**'
+      - 'scripts/**'
+      - 'testing/**'
+      - '.github/workflows/**'
   pull_request:
     branches: [ main, master ]
+    paths:
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'configs/**'
+      - 'scripts/**'
+      - 'testing/**'
+      - '.github/workflows/**'
   schedule:
-    - cron: '0 0 * * 1'  # Run weekly on Mondays
-  workflow_dispatch:  # Allow manual triggering
-
-env:
-  DOCKER_BUILDKIT: 1
-  COMPOSE_DOCKER_CLI_BUILD: 1
+    - cron: '0 0 * * 0'  # Weekly on Sundays at midnight
+  workflow_dispatch:
 
 jobs:
-  unit-tests:
-    name: Unit Tests
+  static-analysis:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./
     
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
-          
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v3
-        
-      - name: Run unit tests
-        id: unit_tests
-        run: |
-          # Create test results output directory with proper permissions
-          timestamp=$(date +%Y%m%d%H%M%S)
-          mkdir -p testing/output/$timestamp
-          
-          # Make scripts executable
-          chmod +x testing/lib/*.sh testing/bin/*.sh testing/tests/unit/*.sh testing/bin/unified/*.sh
-          
-          # Run each unit test and collect results
-          echo "::group::Environment Test"
-          docker run --rm -v ${{ github.workspace }}:/app alpine:latest sh -c "cd /app && /app/testing/tests/unit/environment_test.sh | tee /app/testing/output/$timestamp/environment_test.log"
-          environment_exit=$?
-          echo "::endgroup::"
-          
-          echo "::group::Config Parser Test"
-          docker run --rm -v ${{ github.workspace }}:/app alpine:latest sh -c "cd /app && /app/testing/tests/unit/config_parser_test.sh | tee /app/testing/output/$timestamp/config_parser_test.log"
-          config_exit=$?
-          echo "::endgroup::"
-          
-          # Report test results
-          if [ $environment_exit -eq 0 ] && [ $config_exit -eq 0 ]; then
-            echo "status=success" >> $GITHUB_OUTPUT
-            echo "✅ All unit tests passed!"
-          else
-            echo "status=failure" >> $GITHUB_OUTPUT
-            echo "❌ Some unit tests failed"
-            exit 1
-          fi
-        
-      - name: Upload unit test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: unit-test-logs
-          path: testing/output/
-          retention-days: 7
-  
-  image-tests:
-    name: Image Validation Tests
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v3
-        
-      - name: Run image validation tests
-        id: image_tests
-        run: |
-          # Create test results output directory
-          timestamp=$(date +%Y%m%d%H%M%S)
-          mkdir -p testing/output/$timestamp
-          
-          # Make scripts executable
-          chmod +x testing/lib/*.sh testing/bin/*.sh testing/tests/image_validation/*.sh
-          
-          # Run image layer test
-          echo "::group::Layer Test"
-          docker run --rm -v ${{ github.workspace }}:/app -v /var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && /app/testing/tests/image_validation/layer_test.sh | tee /app/testing/output/$timestamp/layer_test.log"
-          layer_exit=$?
-          echo "::endgroup::"
-          
-          # Run image content test
-          echo "::group::Content Test"
-          docker run --rm -v ${{ github.workspace }}:/app -v /var/run/docker.sock:/var/run/docker.sock alpine:latest sh -c "cd /app && apk add --no-cache docker-cli && /app/testing/tests/image_validation/content_test.sh | tee /app/testing/output/$timestamp/content_test.log"
-          content_exit=$?
-          echo "::endgroup::"
-          
-          # Report test results
-          if [ $layer_exit -eq 0 ] && [ $content_exit -eq 0 ]; then
-            echo "status=success" >> $GITHUB_OUTPUT
-            echo "✅ All image validation tests passed!"
-          else
-            echo "status=failure" >> $GITHUB_OUTPUT
-            echo "❌ Some image validation tests failed"
-            exit 1
-          fi
-        
-      - name: Upload image validation test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: image-test-logs
-          path: testing/output/
-          retention-days: 7
-  
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    needs: [unit-tests, image-tests]
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        
-      - name: Set up Docker Compose
-        run: |
-          # Install Docker Compose if not available
-          if ! command -v docker-compose &> /dev/null; then
-            sudo curl -L "https://github.com/docker/compose/releases/download/v2.23.3/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-            sudo chmod +x /usr/local/bin/docker-compose
-          fi
-          docker-compose --version
-          
-      - name: Run integration tests
-        id: integration_tests
-        run: |
-          mkdir -p testing/output
-          chmod +x testing/lib/*.sh testing/bin/*.sh testing/tests/integration/*.sh
-          
-          # Start Docker Compose environment
-          docker-compose up -d
-          
-          # Wait for services to be available
-          echo "Waiting for services to be ready..."
-          sleep 30
-          
-          # Run test runner container
-          docker-compose run --rm test-runner
-          test_exit=$?
-          
-          # Clean up environment
-          docker-compose down
-          
-          # Report test results
-          if [ $test_exit -eq 0 ]; then
-            echo "status=success" >> $GITHUB_OUTPUT
-            echo "✅ All integration tests passed!"
-          else
-            echo "status=failure" >> $GITHUB_OUTPUT
-            echo "❌ Some integration tests failed"
-            exit 1
-          fi
-        
-      - name: Upload integration test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: integration-test-logs
-          path: testing/output/
-          retention-days: 7
-  
-  test-summary:
-    name: Test Summary
-    runs-on: ubuntu-latest
-    needs: [unit-tests, image-tests, integration-tests]
-    if: always()
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        
-      - name: Download all workflow run artifacts
-        uses: actions/download-artifact@v4
-        
-      - name: Generate Test Summary
-        run: |
-          echo "# Docker Validation Framework Test Results" > summary.md
-          echo "" >> summary.md
-          echo "## Unit Tests" >> summary.md
-          if [ "${{ needs.unit-tests.result }}" == "success" ]; then
-            echo "✅ All unit tests passed" >> summary.md
-          else
-            echo "❌ Unit tests failed" >> summary.md
-          fi
-          echo "" >> summary.md
-          
-          echo "## Image Validation Tests" >> summary.md
-          if [ "${{ needs.image-tests.result }}" == "success" ]; then
-            echo "✅ All image validation tests passed" >> summary.md
-          else
-            echo "❌ Image validation tests failed" >> summary.md
-          fi
-          echo "" >> summary.md
-          
-          echo "## Integration Tests" >> summary.md
-          if [ "${{ needs.integration-tests.result }}" == "success" ]; then
-            echo "✅ All integration tests passed" >> summary.md
-          else
-            echo "❌ Integration tests failed" >> summary.md
-          fi
-          echo "" >> summary.md
-          
-          echo "## Overall Status" >> summary.md
-          if [ "${{ needs.unit-tests.result }}" == "success" ] && [ "${{ needs.image-tests.result }}" == "success" ] && [ "${{ needs.integration-tests.result }}" == "success" ]; then
-            echo "✅ All tests passed successfully!" >> summary.md
-          else
-            echo "❌ Some tests failed" >> summary.md
-          fi
+      - uses: actions/checkout@v3.5.3
       
-      - name: Upload Test Summary
-        if: always()
-        uses: actions/upload-artifact@v4
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
         with:
-          name: test-summary
-          path: summary.md
-          retention-days: 30
+          dockerfile: Dockerfile
+      
+      - name: Validate YAML files
+        run: |
+          find . -name "*.yml" -o -name "*.yaml" | xargs yamllint -c .github/workflows/yamllint-config.yml || true
+  
+  security-scan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./
+    
+    steps:
+      - uses: actions/checkout@v3.5.3
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'newrelic-infra:latest'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+  
+  build-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./
+    
+    steps:
+      - uses: actions/checkout@v3.5.3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2.9.1
+      
+      - name: Cache Docker layers
+        uses: actions/cache@v3.3.1
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+      
+      - name: Build and export Docker image
+        uses: docker/build-push-action@v5.0.0
+        with:
+          context: .
+          load: true
+          tags: newrelic-infra:latest
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+      
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+      
+      - name: Run image tests
+        run: |
+          chmod +x testing/tests/image_validation/layer_test.sh
+          ./testing/tests/image_validation/layer_test.sh
+      
+      - name: Run integration tests
+        run: |
+          export NEW_RELIC_LICENSE_KEY=dummy012345678901234567890123456789
+          chmod +x scripts/compose-helper.sh
+          ./scripts/compose-helper.sh -f docker-compose.yml up -d
+          
+          # Wait for containers to be healthy
+          timeout 300 bash -c 'until docker ps | grep -q "(healthy)"; do sleep 5; done'
+          
+          # Run tests
+          docker exec test-runner sh -c "/testing/tests/run_all_tests.sh"
+      
+      - name: Collect logs
+        if: always()
+        run: |
+          mkdir -p logs
+          for container in $(docker ps -aq); do
+            name=$(docker inspect --format='{{.Name}}' $container | sed 's/\///')
+            echo "Collecting logs for $name"
+            docker logs $container > logs/$name.log 2>&1 || true
+          done
+      
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v3.1.3
+        with:
+          name: test-logs
+          path: logs/
+      
+      - name: Clean up
+        if: always()
+        run: ./scripts/compose-helper.sh -f docker-compose.yml down -v
+
+  multi-platform-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./
+    
+    steps:
+      - uses: actions/checkout@v3.5.3
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2.2.0
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2.9.1
+      
+      - name: Build multi-platform image
+        uses: docker/build-push-action@v5.0.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          tags: newrelic-infra:multi-arch
+          outputs: type=image,name=newrelic-infra:multi-arch,push=false

@@ -1,0 +1,62 @@
+name: Version Bump
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'Dockerfile'
+      - 'configs/**'
+      - 'scripts/**'
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - uses: actions/checkout@v3.5.3
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Git
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+      
+      - name: Determine version change type
+        id: change-type
+        run: |
+          # Check for major changes (breaking changes)
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "Dockerfile"; then
+            echo "type=major" >> $GITHUB_OUTPUT
+          # Check for minor changes (new features)
+          elif git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "configs/"; then
+            echo "type=minor" >> $GITHUB_OUTPUT
+          # Default to patch for other changes
+          else
+            echo "type=patch" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Get current version
+        id: current-version
+        run: |
+          CURRENT_VERSION=$(grep -oP 'version="\K[^"]+' Dockerfile)
+          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Bump version
+        id: bump-version
+        uses: actions-ecosystem/action-bump-semver@v1
+        with:
+          current_version: ${{ steps.current-version.outputs.version }}
+          level: ${{ steps.change-type.outputs.type }}
+      
+      - name: Update version in Dockerfile
+        run: |
+          sed -i 's/version="[^"]*"/version="${{ steps.bump-version.outputs.new_version }}"/g' Dockerfile
+      
+      - name: Commit and push
+        run: |
+          git add Dockerfile
+          git commit -m "Bump version to ${{ steps.bump-version.outputs.new_version }}"
+          git push

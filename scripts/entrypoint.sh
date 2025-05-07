@@ -5,19 +5,17 @@ set -e
 export NRIA_LICENSE_KEY="${NRIA_LICENSE_KEY:-$NEW_RELIC_LICENSE_KEY}"
 
 # Process the configuration template with environment variables
-# Create a temporary file for preprocessing
-TEMP_FILE=$(mktemp)
+# Set defaults for environment variables if not already set
+: "${NRIA_DISPLAY_NAME:=Test New Relic Infrastructure}"
+: "${ENVIRONMENT:=testing}"
+: "${NRIA_LOG_LEVEL:=debug}"
+: "${NRIA_METRICS_SYSTEM_SAMPLE_RATE:=15}"
+: "${NRIA_METRICS_STORAGE_SAMPLE_RATE:=15}"
+: "${NRIA_METRICS_NETWORK_SAMPLE_RATE:=15}"
+: "${NRIA_METRICS_PROCESS_SAMPLE_RATE:=15}"
 
-# Preprocess the template to handle default values
-cat /etc/newrelic-infra.yml.template | while IFS= read -r line; do
-  # Process each line to replace ${VAR:default} format with proper defaults
-  processed_line=$(echo "$line" | sed -E 's/\$\{([A-Za-z0-9_]+):([^}]*)\}/\${\1:-\2}/g')
-  echo "$processed_line" >> "$TEMP_FILE"
-done
-
-# Now use envsubst on the preprocessed file
-envsubst < "$TEMP_FILE" > /home/newrelic-user/config/newrelic-infra.yml
-rm -f "$TEMP_FILE"
+# Use envsubst to render the template with environment variables
+envsubst < /etc/newrelic-infra.yml.template > /home/newrelic-user/config/newrelic-infra.yml
 
 # Check if license key is provided
 if [ -z "${NRIA_LICENSE_KEY}" ] || [ "${NRIA_LICENSE_KEY}" = "" ]; then

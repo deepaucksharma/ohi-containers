@@ -1,9 +1,9 @@
 license_key: ${NRIA_LICENSE_KEY}
-display_name: ${NRIA_DISPLAY_NAME:-Test New Relic Infrastructure}
+display_name: ${NRIA_DISPLAY_NAME}
 
 # Database monitoring settings
 custom_attributes:
-  environment: ${ENVIRONMENT:-testing}
+  environment: ${ENVIRONMENT}
   service: database-monitoring
   team: platform-engineering
 

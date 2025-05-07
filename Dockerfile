@@ -6,12 +6,11 @@ LABEL maintainer="platform-eng@example.com" \
       description="New Relic Infrastructure with DB Monitoring Integrations"
 
 # Install additional dependencies
-RUN apt-get update && apt-get install -y \
+RUN apk add --no-cache \
     curl \
-    gettext-base \
+    gettext \
     jq \
-    procps \
-    && rm -rf /var/lib/apt/lists/*
+    procps
 
 # Copy configuration files
 COPY configs/ /etc/newrelic-infra/integrations.d/

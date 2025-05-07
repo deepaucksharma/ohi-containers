@@ -5,7 +5,19 @@ set -e
 export NRIA_LICENSE_KEY="${NRIA_LICENSE_KEY:-$NEW_RELIC_LICENSE_KEY}"
 
 # Process the configuration template with environment variables
-envsubst < /etc/newrelic-infra.yml.template > /etc/newrelic-infra.yml
+# Create a temporary file for preprocessing
+TEMP_FILE=$(mktemp)
+
+# Preprocess the template to handle default values
+cat /etc/newrelic-infra.yml.template | while IFS= read -r line; do
+  # Process each line to replace ${VAR:default} format with proper defaults
+  processed_line=$(echo "$line" | sed -E 's/\$\{([A-Za-z0-9_]+):([^}]*)\}/\${\1:-\2}/g')
+  echo "$processed_line" >> "$TEMP_FILE"
+done
+
+# Now use envsubst on the preprocessed file
+envsubst < "$TEMP_FILE" > /home/newrelic-user/config/newrelic-infra.yml
+rm -f "$TEMP_FILE"
 
 # Check if license key is provided
 if [ -z "${NRIA_LICENSE_KEY}" ] || [ "${NRIA_LICENSE_KEY}" = "" ]; then

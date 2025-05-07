@@ -1,9 +1,9 @@
 license_key: ${NRIA_LICENSE_KEY}
-display_name: ${NRIA_DISPLAY_NAME:Test New Relic Infrastructure}
+display_name: ${NRIA_DISPLAY_NAME:-Test New Relic Infrastructure}
 
 # Database monitoring settings
 custom_attributes:
-  environment: ${ENVIRONMENT:testing}
+  environment: ${ENVIRONMENT:-testing}
   service: database-monitoring
   team: platform-engineering
 
@@ -12,15 +12,15 @@ integrations_config_dir: /etc/newrelic-infra/integrations.d
 
 # Logging configuration
 log:
-  level: ${NRIA_LOG_LEVEL:debug}
+  level: ${NRIA_LOG_LEVEL:-debug}
   file: /var/log/newrelic-infra/newrelic-infra.log
 
 # Metric collection settings
 metrics:
-  system_sample_rate: ${NRIA_METRICS_SYSTEM_SAMPLE_RATE:15}
-  storage_sample_rate: ${NRIA_METRICS_STORAGE_SAMPLE_RATE:15}
-  network_sample_rate: ${NRIA_METRICS_NETWORK_SAMPLE_RATE:15}
-  process_sample_rate: ${NRIA_METRICS_PROCESS_SAMPLE_RATE:15}
+  system_sample_rate: ${NRIA_METRICS_SYSTEM_SAMPLE_RATE:-15}
+  storage_sample_rate: ${NRIA_METRICS_STORAGE_SAMPLE_RATE:-15}
+  network_sample_rate: ${NRIA_METRICS_NETWORK_SAMPLE_RATE:-15}
+  process_sample_rate: ${NRIA_METRICS_PROCESS_SAMPLE_RATE:-15}
 
 # Features configuration
 features:

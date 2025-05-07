@@ -73,9 +73,7 @@ services:
 
   # New Relic Infrastructure Agent (under test)
   newrelic-infra:
-    build:
-      context: ..
-      dockerfile: Dockerfile
+    image: newrelic-infra:test-fixed
     container_name: test-newrelic-infra
     networks:
       - backend
@@ -114,8 +112,6 @@ services:
         target: /var/log/newrelic-infra
         tmpfs:
           size: 100m
-          uid: 1000
-          gid: 1000
     # Let Docker use the HEALTHCHECK from the Dockerfile
 
   # Test runner for manual tests

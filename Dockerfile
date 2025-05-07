@@ -45,6 +45,12 @@ RUN adduser -D -u 1000 -h /home/newrelic-user newrelic-user \
     && chmod -R 755 /etc/newrelic-infra \
     && chmod 755 /entrypoint.sh /usr/local/bin/healthcheck.sh
 
+# Create config directory in user's home directory and set symlink
+RUN mkdir -p /home/newrelic-user/config \
+    && chown -R newrelic-user:newrelic-user /home/newrelic-user/config \
+    && chmod 755 /home/newrelic-user/config \
+    && ln -sf /home/newrelic-user/config/newrelic-infra.yml /etc/newrelic-infra.yml
+
 # Configure healthcheck
 HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \
   CMD /usr/local/bin/healthcheck.sh

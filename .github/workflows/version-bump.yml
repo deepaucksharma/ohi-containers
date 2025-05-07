@@ -55,6 +55,37 @@ jobs:
         run: |
           sed -i 's/version="[^"]*"/version="${{ steps.bump-version.outputs.new_version }}"/g' Dockerfile
       
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/newrelic-infra:latest
+            ghcr.io/${{ github.repository_owner }}/newrelic-infra:v${{ steps.bump-version.outputs.new_version }}
+      
+      # Update Helm chart version if it exists
+      - name: Update Helm chart version
+        run: |
+          if [ -f kubernetes/helm-chart/Chart.yaml ]; then
+            sed -i "s/^version:.*/version: ${{ steps.bump-version.outputs.new_version }}/g" kubernetes/helm-chart/Chart.yaml
+            sed -i "s/^appVersion:.*/appVersion: ${{ steps.bump-version.outputs.new_version }}/g" kubernetes/helm-chart/Chart.yaml
+            git add kubernetes/helm-chart/Chart.yaml
+          fi
+          
+          # Update Helm values
+          if [ -f kubernetes/helm-chart/values.yaml ]; then
+            sed -i "s/tag:.*/tag: v${{ steps.bump-version.outputs.new_version }}/g" kubernetes/helm-chart/values.yaml
+            git add kubernetes/helm-chart/values.yaml
+          fi
+      
       - name: Commit and push
         run: |
           git add Dockerfile

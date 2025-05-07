@@ -1,4 +1,4 @@
-FROM newrelic/infrastructure-bundle:3.7.1
+FROM newrelic/infrastructure:latest
 
 # Set metadata labels
 LABEL maintainer="platform-eng@example.com" \
@@ -6,29 +6,26 @@ LABEL maintainer="platform-eng@example.com" \
       description="New Relic Infrastructure with DB Monitoring Integrations"
 
 # Install additional dependencies
-RUN apt-get update && apt-get install -y \
+RUN apk add --no-cache \
     curl \
-    gnupg \
-    gettext-base \
-    netcat-openbsd \
+    gettext \
     jq \
-    && rm -rf /var/lib/apt/lists/*
+    procps
 
 # Copy configuration files
 COPY configs/ /etc/newrelic-infra/integrations.d/
 COPY configs/newrelic-infra.yml.template /etc/newrelic-infra.yml.template
 
-# Create required directories
+# Create required directories with appropriate permissions
 RUN mkdir -p \
     /var/log/test-results \
     /var/db/newrelic-infra/test-data \
     /var/log/newrelic-infra \
+    /var/log/mysql \
+    && chmod -R 755 /var/log/test-results \
+    /var/db/newrelic-infra/test-data \
+    /var/log/newrelic-infra \
     /var/log/mysql
-
-# Set permissions
-RUN chmod -R 777 /var/log/newrelic-infra \
-    && chmod -R 777 /var/log/mysql \
-    && chmod -R 755 /etc/newrelic-infra/integrations.d/
 
 # Add and configure health check script
 COPY scripts/healthcheck.sh /usr/local/bin/healthcheck.sh
@@ -39,8 +36,9 @@ COPY scripts/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Create a non-root user and set permissions
-RUN useradd -u 1000 -m newrelic-user \
+RUN adduser -D -u 1000 -h /home/newrelic-user newrelic-user \
     && chown -R newrelic-user:newrelic-user /var/log/newrelic-infra \
+    && chmod -R 775 /var/log/newrelic-infra \
     && chown -R newrelic-user:newrelic-user /var/log/mysql \
     && chown -R newrelic-user:newrelic-user /var/log/test-results \
     && chown -R newrelic-user:newrelic-user /var/db/newrelic-infra \

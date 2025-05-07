@@ -77,7 +77,6 @@ services:
     container_name: test-newrelic-infra
     networks:
       - backend
-      - external
     depends_on:
       mysql:
         condition: service_healthy
@@ -137,6 +136,3 @@ networks:
   backend:
     driver: bridge
     internal: true
-  # External network for communication with the outside world
-  external:
-    driver: bridge

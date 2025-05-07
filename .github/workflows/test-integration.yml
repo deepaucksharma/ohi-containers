@@ -4,21 +4,13 @@ on:
   push:
     branches: [ main, master ]
     paths:
-      - 'Dockerfile'
-      - 'docker-compose.yml'
-      - 'configs/**'
-      - 'scripts/**'
-      - 'testing/**'
-      - '.github/workflows/**'
+      - 'testing/tests/integration/**'
+      - '.github/workflows/test-integration.yml'
   pull_request:
     branches: [ main, master ]
     paths:
-      - 'Dockerfile'
-      - 'docker-compose.yml'
-      - 'configs/**'
-      - 'scripts/**'
-      - 'testing/**'
-      - '.github/workflows/**'
+      - 'testing/tests/integration/**'
+      - '.github/workflows/test-integration.yml'
   workflow_dispatch:
 
 jobs:

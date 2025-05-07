@@ -12,18 +12,16 @@ integrations:
       COLLECT_ALL_DATABASES: "1"
       
       # Enable query performance monitoring
-      METRICS: "1"
       SLOW_QUERIES: "1"
       EXTENDED_METRICS: "1"
       EXTENDED_INNODB_METRICS: "1"
       EXTENDED_INNODB_METRICS_AS_SAMPLES: "1"
-      GLOBAL_STATS: "1"
       
       # Metrics collection categories
-      COLLECT_SLAVE_METRICS: "1"
-      COLLECT_PROCESSLIST_METRICS: "1"
-      COLLECT_TABLE_SCHEMA_METRICS: "1"
-      COLLECT_TABLESPACE_METRICS: "1"
+      SLAVE_METRICS: "1"
+      PROCESSLIST_METRICS: "1"
+      TABLE_SCHEMA_METRICS: "1"
+      TABLESPACE_METRICS: "1"
       
       # Additional settings for query monitoring
       TIMEOUT: "30"

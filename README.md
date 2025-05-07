@@ -20,45 +20,44 @@ The codebase has been streamlined and improved in the following ways:
 ## Project Structure
 
 ```
-D:\NewRelic\db-aws\                 # Repository root
-└── docker/                         # Docker resources
-    ├── .env                        # Environment variables
-    ├── .github/                    # GitHub workflow configurations
-    │   └── workflows/              # CI workflow definitions
-    ├── configs/                    # Configuration templates
-    │   ├── newrelic-infra.yml      # Main agent config
-    │   ├── mysql-config.yml        # MySQL integration config
-    │   └── postgresql-config.yml   # PostgreSQL integration config
-    ├── docker-compose.yml          # Main Docker Compose file
-    ├── Dockerfile                  # Main Dockerfile
-    ├── kubernetes/                 # Kubernetes configurations
-    ├── README.md                   # This documentation file
-    ├── runtests.bat                # Windows test runner wrapper
-    ├── runtests.sh                 # Linux test runner wrapper
-    ├── scripts/                    # Operational scripts
-    │   ├── entrypoint.sh           # Container entrypoint script
-    │   └── healthcheck.sh          # Container health check
-    └── testing/                    # All testing-related code
-        ├── bin/                    # Test runner scripts
-        ├── fixtures/               # Test data fixtures
-        │   ├── mysql/              # MySQL test data
-        │   ├── postgres/           # PostgreSQL test data
-        │   └── wiremock/           # Mock backend configs
-        ├── lib/                    # Testing libraries
-        │   ├── assertions.sh       # Test assertions
-        │   ├── common.sh           # Common utility functions
-        │   └── database_utils.sh   # Database utility functions
-        ├── output/                 # Test output directory
-        └── tests/                  # Test scripts by category
-            ├── config_validation/  # Config validation tests
-            ├── image_validation/   # Image validation tests
-            ├── integration/        # Integration tests
-            │   ├── mysql/          # MySQL-specific tests
-            │   └── postgres/       # PostgreSQL-specific tests
-            ├── performance/        # Performance tests
-            ├── run_all_tests.sh    # Main test runner script
-            ├── security/           # Security tests
-            └── unit/               # Unit tests
+deepaucksharma-ohi-containers/      # Repository root
+├── .env                        # Environment variables
+├── .github/                    # GitHub workflow configurations
+│   └── workflows/              # CI workflow definitions
+├── configs/                    # Configuration templates
+│   ├── newrelic-infra.yml      # Main agent config
+│   ├── mysql-config.yml        # MySQL integration config
+│   └── postgresql-config.yml   # PostgreSQL integration config
+├── docker-compose.yml          # Main Docker Compose file
+├── Dockerfile                  # Main Dockerfile
+├── kubernetes/                 # Kubernetes configurations
+├── README.md                   # This documentation file
+├── runtests.bat                # Windows test runner wrapper
+├── runtests.sh                 # Linux test runner wrapper
+├── scripts/                    # Operational scripts
+│   ├── entrypoint.sh           # Container entrypoint script
+│   └── healthcheck.sh          # Container health check
+└── testing/                    # All testing-related code
+    ├── bin/                    # Test runner scripts
+    ├── fixtures/               # Test data fixtures
+    │   ├── mysql/              # MySQL test data
+    │   ├── postgres/           # PostgreSQL test data
+    │   └── wiremock/           # Mock backend configs
+    ├── lib/                    # Testing libraries
+    │   ├── assertions.sh       # Test assertions
+    │   ├── common.sh           # Common utility functions
+    │   └── database_utils.sh   # Database utility functions
+    ├── output/                 # Test output directory
+    └── tests/                  # Test scripts by category
+        ├── config_validation/  # Config validation tests
+        ├── image_validation/   # Image validation tests
+        ├── integration/        # Integration tests
+        │   ├── mysql/          # MySQL-specific tests
+        │   └── postgres/       # PostgreSQL-specific tests
+        ├── performance/        # Performance tests
+        ├── run_all_tests.sh    # Main test runner script
+        ├── security/           # Security tests
+        └── unit/               # Unit tests
 ```
 
 ## ✨ New: Automated E2E & Integration Tests
@@ -120,6 +119,26 @@ Happy hacking 👩‍💻👨‍💻— drop issues or PRs if you spot a gap!
 - Docker Engine (Windows or Linux)
 - Docker Compose
 - Bash-compatible shell (Linux or Git Bash/WSL for Windows)
+
+### Environment Variables
+
+The framework uses environment variables to configure various aspects of the tests. A sample `.env.example` file is provided in the `configs` directory that you can copy to the root directory as `.env`:
+
+```bash
+# Copy the example .env file
+cp configs/.env.example .env
+
+# Edit the .env file to customize your settings
+nano .env  # or your preferred editor
+```
+
+Key environment variables include:
+
+- `NEW_RELIC_LICENSE_KEY`: Your New Relic license key
+- `MYSQL_*`: MySQL connection parameters
+- `POSTGRES_*`: PostgreSQL connection parameters
+- `NRIA_*`: New Relic Infrastructure agent settings
+- Database integration metrics toggles (set to 1 to enable, 0 to disable)
 
 ### Running Tests
 

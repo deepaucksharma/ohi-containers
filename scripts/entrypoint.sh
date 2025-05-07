@@ -28,5 +28,17 @@ else
   echo "Running in PRODUCTION mode - using default New Relic endpoints"
 fi
 
+# Ensure log directory has correct permissions for nri-agent user
+if [ -d "/var/log/newrelic-infra" ]; then
+  echo "Setting permissions for log directory..."
+  chmod -R 775 /var/log/newrelic-infra
+  # Try to change ownership if possible
+  if [ "$(id -u)" = "0" ]; then
+    chown -R nri-agent:nri-agent /var/log/newrelic-infra 2>/dev/null || \
+    chown -R 1000:1000 /var/log/newrelic-infra 2>/dev/null || \
+    echo "WARNING: Could not change ownership of log directory, but permissions are set to 775"
+  fi
+fi
+
 echo "Starting New Relic Infrastructure Agent..."
 exec /usr/bin/newrelic-infra "$@"
